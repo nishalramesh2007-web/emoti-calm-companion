@@ -3,19 +3,70 @@ import { useNavigate } from "react-router-dom";
 import EmotionCard from "@/components/EmotionCard";
 import BottomNav from "@/components/BottomNav";
 
+const emotionResponses = {
+  Happy: [
+    "That's wonderful! Let's keep this positive energy flowing. What made you feel happy today?",
+    "I love seeing you happy! Joy is contagious — would you like to share what sparked this feeling?",
+    "Happiness looks beautiful on you! Let's savor this moment together.",
+    "What a lovely feeling! Remember this moment when things get tough.",
+    "Your happiness brightens the world! What's bringing you joy right now?",
+  ],
+  Sad: [
+    "I understand how heavy sadness can feel. Let's slow down together. Would you like to talk about it or try a calming exercise?",
+    "It's okay to feel sad. I'm here with you, and your feelings are valid.",
+    "Sadness is a part of being human. Let me offer you some gentle comfort.",
+    "I see you're going through a tough time. Remember, this feeling will pass.",
+    "Your heart is heavy right now, and that's okay. Let's breathe through this together.",
+  ],
+  Angry: [
+    "It's okay to feel angry. Let's take a few deep breaths together to find some calm.",
+    "Anger is trying to tell you something. Let's explore it gently.",
+    "I hear you. Anger can be intense. Let's find a safe way to release this energy.",
+    "Your feelings are valid. Would you like to try some grounding exercises?",
+    "Let's pause and breathe. Anger is powerful, but so is your ability to find peace.",
+  ],
+  Anxious: [
+    "Anxiety can be overwhelming. You're safe here. Let's ground ourselves with some breathing exercises.",
+    "I'm right here with you. Let's take this one breath at a time.",
+    "Your worries are valid, but you're stronger than you know. Let's find calm together.",
+    "Anxiety is uncomfortable, but it will pass. Let me guide you to a peaceful place.",
+    "You're not alone in this. Let's slow down and find your center together.",
+  ],
+  Tired: [
+    "Rest is important. Be gentle with yourself. Would you like some relaxation techniques?",
+    "Your body is asking for rest. Honor that need — you deserve it.",
+    "Tiredness is your body's way of saying 'slow down'. Let's find some peace.",
+    "Even the strongest need rest. What would feel most restorative right now?",
+    "It's okay to take a break. Let me help you find some gentle relaxation.",
+  ],
+  Calm: [
+    "Beautiful! Embrace this peaceful moment. How can we make it even more serene?",
+    "What a lovely state to be in. Let's deepen this sense of tranquility.",
+    "Calmness is a gift. Let's nurture this peaceful feeling together.",
+    "You've found your center. Would you like to explore some mindfulness practices?",
+    "This peaceful energy is wonderful. Let's keep it flowing.",
+  ],
+};
+
 const emotions = [
-  { emoji: "😊", label: "Happy", color: "mint" as const, response: "That's wonderful! Let's keep this positive energy flowing. What made you feel happy today?" },
-  { emoji: "😔", label: "Sad", color: "blue" as const, response: "I understand how heavy sadness can feel. Let's slow down together. Would you like to talk about it or try a calming exercise?" },
-  { emoji: "😠", label: "Angry", color: "peach" as const, response: "It's okay to feel angry. Let's take a few deep breaths together to find some calm." },
-  { emoji: "😟", label: "Anxious", color: "lavender" as const, response: "Anxiety can be overwhelming. You're safe here. Let's ground ourselves with some breathing exercises." },
-  { emoji: "😴", label: "Tired", color: "blue" as const, response: "Rest is important. Be gentle with yourself. Would you like some relaxation techniques?" },
-  { emoji: "😌", label: "Calm", color: "mint" as const, response: "Beautiful! Embrace this peaceful moment. How can we make it even more serene?" },
+  { emoji: "😊", label: "Happy", color: "mint" as const },
+  { emoji: "😔", label: "Sad", color: "blue" as const },
+  { emoji: "😠", label: "Angry", color: "peach" as const },
+  { emoji: "😟", label: "Anxious", color: "lavender" as const },
+  { emoji: "😴", label: "Tired", color: "blue" as const },
+  { emoji: "😌", label: "Calm", color: "mint" as const },
 ];
+
+const getRandomResponse = (emotion: string): string => {
+  const responses = emotionResponses[emotion as keyof typeof emotionResponses];
+  return responses[Math.floor(Math.random() * responses.length)];
+};
 
 const HomePage = () => {
   const navigate = useNavigate();
   const [username, setUsername] = useState("Friend");
   const [selectedEmotion, setSelectedEmotion] = useState<number | null>(null);
+  const [currentResponse, setCurrentResponse] = useState<string>("");
   const [showResponse, setShowResponse] = useState(false);
 
   useEffect(() => {
@@ -26,7 +77,10 @@ const HomePage = () => {
   }, []);
 
   const handleEmotionSelect = (index: number) => {
+    const emotion = emotions[index].label;
+    const response = getRandomResponse(emotion);
     setSelectedEmotion(index);
+    setCurrentResponse(response);
     setShowResponse(true);
   };
 
@@ -34,7 +88,7 @@ const HomePage = () => {
     navigate("/chat", { 
       state: { 
         emotion: emotions[selectedEmotion!].label,
-        initialMessage: emotions[selectedEmotion!].response 
+        initialMessage: currentResponse 
       } 
     });
   };
@@ -95,7 +149,7 @@ const HomePage = () => {
                 </div>
                 <div className="flex-1">
                   <p className="text-foreground leading-relaxed">
-                    {emotions[selectedEmotion].response}
+                    {currentResponse}
                   </p>
                   <button
                     onClick={handleChatWithAI}

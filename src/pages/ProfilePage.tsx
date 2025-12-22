@@ -10,7 +10,9 @@ const ProfilePage = () => {
   const navigate = useNavigate();
   const [username, setUsername] = useState("Friend");
   const [notifications, setNotifications] = useState(true);
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode, setDarkMode] = useState(() => {
+    return document.documentElement.classList.contains("dark");
+  });
 
   useEffect(() => {
     const storedUser = localStorage.getItem("emoticam_user");
@@ -18,6 +20,16 @@ const ProfilePage = () => {
       setUsername(storedUser);
     }
   }, []);
+
+  useEffect(() => {
+    if (darkMode) {
+      document.documentElement.classList.add("dark");
+      localStorage.setItem("emoticam_theme", "dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+      localStorage.setItem("emoticam_theme", "light");
+    }
+  }, [darkMode]);
 
   const handleLogout = () => {
     localStorage.removeItem("emoticam_user");

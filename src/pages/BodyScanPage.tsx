@@ -5,16 +5,116 @@ import { Button } from "@/components/ui/button";
 import BottomNav from "@/components/BottomNav";
 
 const bodyParts = [
-  { name: "Top of Head", duration: 15, instruction: "Bring your attention to the very top of your head. Notice any sensations—tingling, warmth, or tension." },
-  { name: "Forehead & Eyes", duration: 15, instruction: "Relax your forehead. Let go of any furrowing. Soften the muscles around your eyes." },
-  { name: "Jaw & Mouth", duration: 15, instruction: "Unclench your jaw. Let your tongue rest gently. Slightly part your lips." },
-  { name: "Neck & Shoulders", duration: 20, instruction: "Roll your shoulders back and let them drop. Release any tightness in your neck." },
-  { name: "Arms & Hands", duration: 15, instruction: "Notice sensations in your arms down to your fingertips. Let them feel heavy and relaxed." },
-  { name: "Chest & Heart", duration: 20, instruction: "Feel your chest rise and fall. Notice your heartbeat. Breathe into this space." },
-  { name: "Stomach & Core", duration: 15, instruction: "Soften your belly. Let go of any holding. Allow your breath to reach deep." },
-  { name: "Lower Back & Hips", duration: 20, instruction: "Release tension in your lower back. Let your hips feel grounded and supported." },
-  { name: "Legs & Thighs", duration: 15, instruction: "Notice sensations in your thighs. Let them feel heavy against the surface beneath you." },
-  { name: "Feet & Toes", duration: 15, instruction: "Bring awareness to your feet. Feel each toe. Notice the ground beneath you." },
+  { 
+    name: "Top of Head", 
+    duration: 15, 
+    emoji: "👒",
+    instructions: [
+      "Bring your attention to the very top of your head",
+      "Notice any sensations—tingling, warmth, or tension",
+      "Imagine a warm, gentle light resting on your crown"
+    ],
+    sensations: ["tingling", "warmth", "pressure", "lightness", "pulsing"]
+  },
+  { 
+    name: "Forehead & Eyes", 
+    duration: 15, 
+    emoji: "👁️",
+    instructions: [
+      "Relax your forehead and smooth out any furrowing",
+      "Soften the muscles around your eyes",
+      "Let your eyelids feel heavy and relaxed"
+    ],
+    sensations: ["heaviness", "smoothness", "warmth", "relaxation", "softening"]
+  },
+  { 
+    name: "Jaw & Mouth", 
+    duration: 15, 
+    emoji: "👄",
+    instructions: [
+      "Unclench your jaw and let it hang slightly open",
+      "Let your tongue rest gently on the roof of your mouth",
+      "Slightly part your lips and relax your cheeks"
+    ],
+    sensations: ["looseness", "release", "space", "softness", "ease"]
+  },
+  { 
+    name: "Neck & Shoulders", 
+    duration: 20, 
+    emoji: "💪",
+    instructions: [
+      "Roll your shoulders back gently and let them drop",
+      "Release any tightness in your neck",
+      "Feel the weight of your head supported by your spine"
+    ],
+    sensations: ["release", "dropping", "heaviness", "warmth", "melting"]
+  },
+  { 
+    name: "Arms & Hands", 
+    duration: 15, 
+    emoji: "🤲",
+    instructions: [
+      "Notice sensations flowing down your arms",
+      "Feel your hands resting, fingers gently curled",
+      "Let your arms feel heavy and supported"
+    ],
+    sensations: ["tingling", "warmth", "heaviness", "pulsing", "flowing"]
+  },
+  { 
+    name: "Chest & Heart", 
+    duration: 20, 
+    emoji: "💖",
+    instructions: [
+      "Feel your chest rise and fall with each breath",
+      "Notice your heartbeat, steady and calm",
+      "Breathe into this space with gratitude"
+    ],
+    sensations: ["expansion", "rhythm", "warmth", "openness", "beating"]
+  },
+  { 
+    name: "Stomach & Core", 
+    duration: 15, 
+    emoji: "🌊",
+    instructions: [
+      "Soften your belly completely",
+      "Let go of any holding or tension",
+      "Allow your breath to reach deep into your abdomen"
+    ],
+    sensations: ["softening", "movement", "warmth", "gurgling", "expansion"]
+  },
+  { 
+    name: "Lower Back & Hips", 
+    duration: 20, 
+    emoji: "🪑",
+    instructions: [
+      "Release tension in your lower back",
+      "Let your hips feel grounded and supported",
+      "Feel the connection to the surface beneath you"
+    ],
+    sensations: ["grounding", "support", "release", "heaviness", "stability"]
+  },
+  { 
+    name: "Legs & Thighs", 
+    duration: 15, 
+    emoji: "🦵",
+    instructions: [
+      "Notice sensations in your thighs",
+      "Feel them heavy against the surface",
+      "Let any tension flow downward and out"
+    ],
+    sensations: ["heaviness", "warmth", "relaxation", "weight", "stillness"]
+  },
+  { 
+    name: "Feet & Toes", 
+    duration: 15, 
+    emoji: "🦶",
+    instructions: [
+      "Bring awareness to your feet",
+      "Feel each toe individually",
+      "Notice the ground beneath you, solid and supporting"
+    ],
+    sensations: ["grounding", "tingling", "warmth", "contact", "connection"]
+  },
 ];
 
 const BodyScanPage = () => {
@@ -106,15 +206,35 @@ const BodyScanPage = () => {
             <>
               <div className="text-center mb-6">
                 <div className={`w-24 h-24 mx-auto rounded-full bg-calm-lavender-light flex items-center justify-center mb-4 ${isPlaying ? 'animate-pulse' : ''}`}>
-                  <span className="text-4xl">🧘</span>
+                  <span className="text-4xl">{bodyParts[currentPart].emoji}</span>
                 </div>
                 <h2 className="font-display text-2xl font-bold text-foreground">{bodyParts[currentPart].name}</h2>
                 <p className="text-3xl font-bold text-primary mt-2">{timeLeft}s</p>
               </div>
 
-              <p className="text-center text-muted-foreground leading-relaxed mb-6">
-                {bodyParts[currentPart].instruction}
-              </p>
+              {/* Instructions */}
+              <div className="space-y-2 mb-4">
+                {bodyParts[currentPart].instructions.map((instruction, index) => (
+                  <p key={index} className="text-center text-muted-foreground leading-relaxed">
+                    • {instruction}
+                  </p>
+                ))}
+              </div>
+
+              {/* Sensations to notice */}
+              <div className="bg-calm-mint-light/50 rounded-xl p-4 mb-6">
+                <p className="text-sm font-medium text-foreground mb-2">✨ Sensations to notice:</p>
+                <div className="flex flex-wrap gap-2 justify-center">
+                  {bodyParts[currentPart].sensations.map((sensation, index) => (
+                    <span 
+                      key={index}
+                      className="px-3 py-1 bg-card rounded-full text-xs text-muted-foreground border border-border"
+                    >
+                      {sensation}
+                    </span>
+                  ))}
+                </div>
+              </div>
 
               <div className="flex justify-center gap-4">
                 <Button

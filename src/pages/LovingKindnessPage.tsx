@@ -1,79 +1,124 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ArrowLeft, ChevronRight, Heart, RotateCcw } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import BottomNav from "@/components/BottomNav";
 
-const recipients = [
+// Extended phrases pool for each recipient type
+const phrasePools = {
+  self: [
+    "May I be happy and content",
+    "May I be healthy and strong",
+    "May I be safe and protected",
+    "May I live with ease and joy",
+    "May I be free from suffering",
+    "May I be filled with peace",
+    "May I accept myself as I am",
+    "May I be patient with myself",
+    "May I find inner strength",
+    "May I be surrounded by love",
+    "May I embrace my journey",
+    "May I find comfort in stillness",
+  ],
+  others: [
+    "May you be happy and at peace",
+    "May you be healthy in body and mind",
+    "May you be safe from harm",
+    "May you live with ease and grace",
+    "May you be free from worry",
+    "May you be filled with joy",
+    "May you find what you seek",
+    "May you be loved and appreciated",
+    "May you know your own worth",
+    "May you experience kindness",
+    "May you find comfort and rest",
+    "May you be surrounded by warmth",
+  ],
+  all: [
+    "May all beings be happy",
+    "May all beings be healthy",
+    "May all beings be safe",
+    "May all beings live with ease",
+    "May all beings be free from suffering",
+    "May all beings find peace",
+    "May all beings know love",
+    "May all beings be at rest",
+    "May all beings be protected",
+    "May all beings find joy",
+    "May all beings experience kindness",
+    "May all beings feel connected",
+  ],
+};
+
+const recipientTemplates = [
   {
     name: "Yourself",
     emoji: "🪞",
     color: "bg-calm-lavender-light",
     intro: "Begin by sending love and kindness to yourself.",
-    phrases: [
-      "May I be happy",
-      "May I be healthy",
-      "May I be safe",
-      "May I live with ease"
-    ]
+    pool: "self" as const,
   },
   {
     name: "A Loved One",
     emoji: "💕",
     color: "bg-calm-peach-light",
     intro: "Think of someone you love deeply. Picture them clearly.",
-    phrases: [
-      "May you be happy",
-      "May you be healthy",
-      "May you be safe",
-      "May you live with ease"
-    ]
+    pool: "others" as const,
   },
   {
     name: "A Neutral Person",
     emoji: "🧑",
     color: "bg-calm-blue-light",
     intro: "Think of someone you neither like nor dislike—perhaps a neighbor or stranger.",
-    phrases: [
-      "May you be happy",
-      "May you be healthy",
-      "May you be safe",
-      "May you live with ease"
-    ]
+    pool: "others" as const,
   },
   {
     name: "A Difficult Person",
     emoji: "🌱",
     color: "bg-calm-mint-light",
     intro: "Think of someone you find challenging. This takes courage—go gently.",
-    phrases: [
-      "May you be happy",
-      "May you be healthy",
-      "May you be safe",
-      "May you live with ease"
-    ]
+    pool: "others" as const,
   },
   {
     name: "All Beings",
     emoji: "🌍",
     color: "bg-calm-cream",
     intro: "Expand your loving-kindness to all beings everywhere.",
-    phrases: [
-      "May all beings be happy",
-      "May all beings be healthy",
-      "May all beings be safe",
-      "May all beings live with ease"
-    ]
-  }
+    pool: "all" as const,
+  },
 ];
+
+// Function to get random unique phrases
+const getRandomPhrases = (pool: string[], count: number, usedPhrases: Set<string>): string[] => {
+  const available = pool.filter(p => !usedPhrases.has(p));
+  const shuffled = [...available].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, count);
+};
 
 const LovingKindnessPage = () => {
   const navigate = useNavigate();
   const [currentRecipient, setCurrentRecipient] = useState(0);
   const [currentPhrase, setCurrentPhrase] = useState(0);
   const [isComplete, setIsComplete] = useState(false);
+  const [usedPhrases, setUsedPhrases] = useState<Set<string>>(new Set());
+  const [recipients, setRecipients] = useState<Array<typeof recipientTemplates[0] & { phrases: string[] }>>([]);
+
+  // Initialize with random phrases on mount
+  useEffect(() => {
+    const used = new Set<string>();
+    const initializedRecipients = recipientTemplates.map(template => {
+      const pool = phrasePools[template.pool];
+      const phrases = getRandomPhrases(pool, 4, used);
+      phrases.forEach(p => used.add(p));
+      return { ...template, phrases };
+    });
+    setRecipients(initializedRecipients);
+    setUsedPhrases(used);
+  }, []);
 
   const handleNext = () => {
+    if (recipients.length === 0) return;
+    
     if (currentPhrase < recipients[currentRecipient].phrases.length - 1) {
       setCurrentPhrase(currentPhrase + 1);
     } else if (currentRecipient < recipients.length - 1) {
@@ -85,10 +130,24 @@ const LovingKindnessPage = () => {
   };
 
   const reset = () => {
+    // Generate new random phrases for next session
+    const used = new Set<string>();
+    const newRecipients = recipientTemplates.map(template => {
+      const pool = phrasePools[template.pool];
+      const phrases = getRandomPhrases(pool, 4, used);
+      phrases.forEach(p => used.add(p));
+      return { ...template, phrases };
+    });
+    setRecipients(newRecipients);
+    setUsedPhrases(used);
     setCurrentRecipient(0);
     setCurrentPhrase(0);
     setIsComplete(false);
   };
+
+  if (recipients.length === 0) {
+    return <div className="min-h-screen bg-background flex items-center justify-center">Loading...</div>;
+  }
 
   const totalPhrases = recipients.reduce((acc, r) => acc + r.phrases.length, 0);
   const completedPhrases = recipients.slice(0, currentRecipient).reduce((acc, r) => acc + r.phrases.length, 0) + currentPhrase;

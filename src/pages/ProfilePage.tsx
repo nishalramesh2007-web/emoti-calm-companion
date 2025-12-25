@@ -1,17 +1,39 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { LogOut, Bell, Moon, Heart, Calendar, ChevronRight } from "lucide-react";
+import { LogOut, Bell, Moon, Heart, Calendar, ChevronRight, Camera, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import BottomNav from "@/components/BottomNav";
 import { toast } from "@/hooks/use-toast";
 
+const avatarOptions = [
+  { emoji: "🌸", bg: "from-calm-lavender to-calm-mint" },
+  { emoji: "🌿", bg: "from-calm-mint to-calm-blue" },
+  { emoji: "🦋", bg: "from-calm-blue to-calm-lavender" },
+  { emoji: "🌙", bg: "from-calm-blue to-primary" },
+  { emoji: "☀️", bg: "from-calm-peach to-calm-cream" },
+  { emoji: "🌊", bg: "from-calm-blue to-calm-mint" },
+  { emoji: "🌺", bg: "from-calm-peach to-calm-lavender" },
+  { emoji: "🍃", bg: "from-calm-mint to-calm-cream" },
+  { emoji: "✨", bg: "from-calm-lavender to-calm-peach" },
+  { emoji: "🌈", bg: "from-calm-peach to-calm-mint" },
+  { emoji: "🐱", bg: "from-calm-lavender to-calm-blue" },
+  { emoji: "🐶", bg: "from-calm-peach to-calm-cream" },
+];
+
 const ProfilePage = () => {
   const navigate = useNavigate();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [username, setUsername] = useState("Friend");
   const [notifications, setNotifications] = useState(true);
   const [darkMode, setDarkMode] = useState(() => {
     return document.documentElement.classList.contains("dark");
+  });
+  const [avatarDialogOpen, setAvatarDialogOpen] = useState(false);
+  const [selectedAvatar, setSelectedAvatar] = useState<{ type: "emoji" | "image"; value: string; bg?: string }>(() => {
+    const saved = localStorage.getItem("emoticam_avatar");
+    return saved ? JSON.parse(saved) : { type: "emoji", value: "🌸", bg: "from-calm-lavender to-calm-mint" };
   });
 
   useEffect(() => {
@@ -40,6 +62,44 @@ const ProfilePage = () => {
     setTimeout(() => navigate("/auth"), 500);
   };
 
+  const handleAvatarSelect = (avatar: typeof avatarOptions[0]) => {
+    const newAvatar = { type: "emoji" as const, value: avatar.emoji, bg: avatar.bg };
+    setSelectedAvatar(newAvatar);
+    localStorage.setItem("emoticam_avatar", JSON.stringify(newAvatar));
+    setAvatarDialogOpen(false);
+    toast({
+      title: "Avatar updated!",
+      description: "Looking great! ✨",
+    });
+  };
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast({
+          title: "Image too large",
+          description: "Please choose an image under 5MB",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const newAvatar = { type: "image" as const, value: reader.result as string };
+        setSelectedAvatar(newAvatar);
+        localStorage.setItem("emoticam_avatar", JSON.stringify(newAvatar));
+        setAvatarDialogOpen(false);
+        toast({
+          title: "Photo updated!",
+          description: "Your new profile photo looks wonderful 💜",
+        });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const stats = [
     { label: "Check-ins", value: "12", icon: Calendar },
     { label: "Calm Moments", value: "8", icon: Heart },
@@ -59,9 +119,27 @@ const ProfilePage = () => {
         <div className="bg-card rounded-3xl p-6 shadow-card border border-border">
           {/* Avatar */}
           <div className="flex items-center gap-4 mb-6">
-            <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-calm-lavender to-calm-mint flex items-center justify-center text-4xl shadow-soft">
-              🌸
-            </div>
+            <button
+              onClick={() => setAvatarDialogOpen(true)}
+              className="relative group"
+            >
+              {selectedAvatar.type === "emoji" ? (
+                <div className={`w-20 h-20 rounded-2xl bg-gradient-to-br ${selectedAvatar.bg} flex items-center justify-center text-4xl shadow-soft transition-transform group-hover:scale-105`}>
+                  {selectedAvatar.value}
+                </div>
+              ) : (
+                <div className="w-20 h-20 rounded-2xl overflow-hidden shadow-soft transition-transform group-hover:scale-105">
+                  <img
+                    src={selectedAvatar.value}
+                    alt="Profile"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              )}
+              <div className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-primary flex items-center justify-center shadow-soft">
+                <Camera className="w-4 h-4 text-primary-foreground" />
+              </div>
+            </button>
             <div>
               <h1 className="font-display text-2xl font-bold text-foreground">{username}</h1>
               <p className="text-muted-foreground">On a journey to inner peace</p>
@@ -131,6 +209,58 @@ const ProfilePage = () => {
           <ChevronRight className="w-5 h-5" />
         </Button>
       </div>
+
+      {/* Avatar Selection Dialog */}
+      <Dialog open={avatarDialogOpen} onOpenChange={setAvatarDialogOpen}>
+        <DialogContent className="max-w-sm rounded-3xl">
+          <DialogHeader>
+            <DialogTitle className="font-display text-xl">Choose Your Avatar</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            {/* Upload from gallery */}
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="w-full flex items-center gap-4 p-4 rounded-2xl bg-gradient-to-br from-calm-lavender-light to-calm-mint-light border border-primary/20 hover:shadow-card transition-all"
+            >
+              <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                <Camera className="w-6 h-6 text-primary" />
+              </div>
+              <div className="text-left">
+                <p className="font-semibold text-foreground">Upload from Gallery</p>
+                <p className="text-sm text-muted-foreground">Choose your own photo</p>
+              </div>
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleImageUpload}
+              className="hidden"
+            />
+
+            {/* Preset avatars */}
+            <div>
+              <p className="text-sm font-medium text-muted-foreground mb-3">Or choose an avatar</p>
+              <div className="grid grid-cols-4 gap-3">
+                {avatarOptions.map((avatar, index) => (
+                  <button
+                    key={index}
+                    onClick={() => handleAvatarSelect(avatar)}
+                    className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${avatar.bg} flex items-center justify-center text-2xl shadow-soft hover:scale-110 transition-transform ${
+                      selectedAvatar.type === "emoji" && selectedAvatar.value === avatar.emoji
+                        ? "ring-2 ring-primary ring-offset-2"
+                        : ""
+                    }`}
+                  >
+                    {avatar.emoji}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <BottomNav />
     </div>

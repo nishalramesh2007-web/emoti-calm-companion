@@ -72,10 +72,9 @@ const yogaPoses = [
 ];
 
 const mindfulActivities = [
-  { name: "Gratitude Journal", icon: "📝", description: "Write 3 things you're grateful for" },
-  { name: "Body Scan", icon: "🧘", description: "Notice sensations from head to toe" },
-  { name: "5 Senses Check", icon: "👁️", description: "Name 5 things you can see, 4 you can touch..." },
-  { name: "Loving Kindness", icon: "💝", description: "Send kind wishes to yourself and others" },
+  { name: "Body Scan", icon: "🧘", description: "Notice sensations from head to toe", path: "/body-scan" },
+  { name: "5 Senses Check", icon: "👁️", description: "Name 5 things you can see, 4 you can touch...", path: "/five-senses" },
+  { name: "Loving Kindness", icon: "💝", description: "Send kind wishes to yourself and others", path: "/loving-kindness" },
 ];
 
 const affirmations = [
@@ -93,10 +92,8 @@ const RelaxPage = () => {
   const [selectedPose, setSelectedPose] = useState(0);
   const [currentAffirmation, setCurrentAffirmation] = useState(0);
 
-  const handleActivityClick = (activityName: string) => {
-    if (activityName === "Gratitude Journal") {
-      navigate("/gratitude-journal");
-    }
+  const handleActivityClick = (path: string) => {
+    navigate(path);
   };
 
   const nextAffirmation = () => {
@@ -234,7 +231,7 @@ const RelaxPage = () => {
               {mindfulActivities.map((activity, index) => (
                 <div
                   key={activity.name}
-                  onClick={() => handleActivityClick(activity.name)}
+                  onClick={() => handleActivityClick(activity.path)}
                   className="bg-card rounded-2xl p-4 shadow-soft border border-border hover:shadow-card transition-all cursor-pointer animate-fade-in-up"
                   style={{ animationDelay: `${index * 100}ms` }}
                 >

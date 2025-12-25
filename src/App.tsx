@@ -10,6 +10,9 @@ import HomePage from "./pages/HomePage";
 import ChatPage from "./pages/ChatPage";
 import RelaxPage from "./pages/RelaxPage";
 import GratitudeJournalPage from "./pages/GratitudeJournalPage";
+import BodyScanPage from "./pages/BodyScanPage";
+import FiveSensesPage from "./pages/FiveSensesPage";
+import LovingKindnessPage from "./pages/LovingKindnessPage";
 import ProfilePage from "./pages/ProfilePage";
 import NotFound from "./pages/NotFound";
 
@@ -36,6 +39,9 @@ const App = () => {
             <Route path="/chat" element={<ChatPage />} />
             <Route path="/relax" element={<RelaxPage />} />
             <Route path="/gratitude-journal" element={<GratitudeJournalPage />} />
+            <Route path="/body-scan" element={<BodyScanPage />} />
+            <Route path="/five-senses" element={<FiveSensesPage />} />
+            <Route path="/loving-kindness" element={<LovingKindnessPage />} />
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>

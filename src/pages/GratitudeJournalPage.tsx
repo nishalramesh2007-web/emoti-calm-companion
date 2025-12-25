@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import BottomNav from "@/components/BottomNav";
 
 interface JournalEntry {
   id: string;
@@ -74,7 +75,7 @@ const GratitudeJournalPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pb-24">
       {/* Header */}
       <div className="sticky top-0 bg-card/95 backdrop-blur-lg border-b border-border px-4 py-4 z-10">
         <div className="flex items-center gap-3">
@@ -170,6 +171,8 @@ const GratitudeJournalPage = () => {
           </div>
         )}
       </div>
+
+      <BottomNav />
     </div>
   );
 };

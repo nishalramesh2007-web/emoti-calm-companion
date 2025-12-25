@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Wind, Activity, Film, Sparkles } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Wind, Activity, Sparkles } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import BreathingExercise from "@/components/BreathingExercise";
 import BottomNav from "@/components/BottomNav";
@@ -35,8 +36,15 @@ const affirmations = [
 ];
 
 const RelaxPage = () => {
+  const navigate = useNavigate();
   const [selectedPattern, setSelectedPattern] = useState(0);
   const [currentAffirmation, setCurrentAffirmation] = useState(0);
+
+  const handleActivityClick = (activityName: string) => {
+    if (activityName === "Gratitude Journal") {
+      navigate("/gratitude-journal");
+    }
+  };
 
   const nextAffirmation = () => {
     setCurrentAffirmation((prev) => (prev + 1) % affirmations.length);
@@ -134,6 +142,7 @@ const RelaxPage = () => {
               {mindfulActivities.map((activity, index) => (
                 <div
                   key={activity.name}
+                  onClick={() => handleActivityClick(activity.name)}
                   className="bg-card rounded-2xl p-4 shadow-soft border border-border hover:shadow-card transition-all cursor-pointer animate-fade-in-up"
                   style={{ animationDelay: `${index * 100}ms` }}
                 >

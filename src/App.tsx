@@ -9,6 +9,7 @@ import AuthPage from "./pages/AuthPage";
 import HomePage from "./pages/HomePage";
 import ChatPage from "./pages/ChatPage";
 import RelaxPage from "./pages/RelaxPage";
+import GratitudeJournalPage from "./pages/GratitudeJournalPage";
 import ProfilePage from "./pages/ProfilePage";
 import NotFound from "./pages/NotFound";
 
@@ -34,6 +35,7 @@ const App = () => {
             <Route path="/home" element={<HomePage />} />
             <Route path="/chat" element={<ChatPage />} />
             <Route path="/relax" element={<RelaxPage />} />
+            <Route path="/gratitude-journal" element={<GratitudeJournalPage />} />
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>

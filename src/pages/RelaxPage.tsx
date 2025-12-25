@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Wind, Activity, Sparkles } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import BreathingExercise from "@/components/BreathingExercise";
+import YogaExercise from "@/components/YogaExercise";
 import BottomNav from "@/components/BottomNav";
 import { cn } from "@/lib/utils";
 
@@ -171,44 +172,9 @@ const RelaxPage = () => {
               ))}
             </div>
 
-            {/* Selected pose details */}
-            <div className="bg-card rounded-3xl p-6 shadow-card border border-border space-y-4">
-              <div className="flex items-center gap-4">
-                <div className="w-16 h-16 rounded-2xl bg-calm-mint-light flex items-center justify-center text-3xl">
-                  {yogaPoses[selectedPose].emoji}
-                </div>
-                <div>
-                  <h3 className="font-display text-xl font-bold text-foreground">{yogaPoses[selectedPose].name}</h3>
-                  <span className="text-sm font-medium text-primary bg-primary/10 px-3 py-1 rounded-full">
-                    {yogaPoses[selectedPose].duration}
-                  </span>
-                </div>
-              </div>
-
-              <p className="text-muted-foreground">{yogaPoses[selectedPose].description}</p>
-
-              <div className="space-y-3">
-                <h4 className="font-semibold text-foreground flex items-center gap-2">
-                  <span className="text-primary">📋</span> Instructions
-                </h4>
-                <ol className="space-y-2">
-                  {yogaPoses[selectedPose].instructions.map((step, index) => (
-                    <li key={index} className="flex gap-3 text-sm text-muted-foreground">
-                      <span className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-semibold flex-shrink-0">
-                        {index + 1}
-                      </span>
-                      {step}
-                    </li>
-                  ))}
-                </ol>
-              </div>
-
-              <div className="bg-calm-lavender-light/50 rounded-xl p-4">
-                <h4 className="font-semibold text-foreground flex items-center gap-2 mb-2">
-                  <span className="text-primary">✨</span> Benefits
-                </h4>
-                <p className="text-sm text-muted-foreground">{yogaPoses[selectedPose].benefits}</p>
-              </div>
+            {/* Interactive yoga exercise */}
+            <div className="bg-card rounded-3xl p-6 shadow-card border border-border">
+              <YogaExercise pose={yogaPoses[selectedPose]} />
             </div>
           </TabsContent>
 

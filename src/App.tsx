@@ -21,7 +21,9 @@ const queryClient = new QueryClient();
 const App = () => {
   useEffect(() => {
     const savedTheme = localStorage.getItem("emoticam_theme");
-    if (savedTheme === "dark") {
+    if (savedTheme === "light") {
+      document.documentElement.classList.remove("dark");
+    } else {
       document.documentElement.classList.add("dark");
     }
   }, []);

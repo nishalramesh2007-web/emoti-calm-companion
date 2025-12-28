@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { LogOut, Bell, Moon, Heart, Calendar, ChevronRight, Camera, X } from "lucide-react";
+import { LogOut, Bell, Moon, Heart, Calendar, ChevronRight, Camera } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import BottomNav from "@/components/BottomNav";
 import { toast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const avatarOptions = [
   { emoji: "🌸", bg: "from-calm-lavender to-calm-mint" },
@@ -31,17 +32,61 @@ const ProfilePage = () => {
     return document.documentElement.classList.contains("dark");
   });
   const [avatarDialogOpen, setAvatarDialogOpen] = useState(false);
-  const [selectedAvatar, setSelectedAvatar] = useState<{ type: "emoji" | "image"; value: string; bg?: string }>(() => {
-    const saved = localStorage.getItem("emoticam_avatar");
-    return saved ? JSON.parse(saved) : { type: "emoji", value: "🌸", bg: "from-calm-lavender to-calm-mint" };
+  const [selectedAvatar, setSelectedAvatar] = useState<{ type: "emoji" | "image"; value: string; bg?: string }>({
+    type: "emoji",
+    value: "🌸",
+    bg: "from-calm-lavender to-calm-mint",
   });
+  const [stats, setStats] = useState({ checkIns: 0, calmMoments: 0 });
+  const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
-    const storedUser = localStorage.getItem("emoticam_user");
-    if (storedUser) {
-      setUsername(storedUser);
-    }
-  }, []);
+    const loadProfile = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        navigate("/auth");
+        return;
+      }
+
+      setUserId(session.user.id);
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("user_id", session.user.id)
+        .maybeSingle();
+
+      if (profile) {
+        setUsername(profile.username || "Friend");
+        setNotifications(profile.notifications_enabled ?? true);
+        setDarkMode(profile.dark_mode ?? false);
+        setStats({
+          checkIns: profile.check_ins ?? 0,
+          calmMoments: profile.calm_moments ?? 0,
+        });
+        
+        if (profile.avatar_type && profile.avatar_value) {
+          const avatarBg = avatarOptions.find(a => a.emoji === profile.avatar_value)?.bg;
+          setSelectedAvatar({
+            type: profile.avatar_type as "emoji" | "image",
+            value: profile.avatar_value,
+            bg: avatarBg || "from-calm-lavender to-calm-mint",
+          });
+        }
+      }
+    };
+
+    loadProfile();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!session) {
+        navigate("/auth");
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [navigate]);
 
   useEffect(() => {
     if (darkMode) {
@@ -51,29 +96,55 @@ const ProfilePage = () => {
       document.documentElement.classList.remove("dark");
       localStorage.setItem("emoticam_theme", "light");
     }
-  }, [darkMode]);
 
-  const handleLogout = () => {
-    localStorage.removeItem("emoticam_user");
+    // Update in database
+    if (userId) {
+      supabase
+        .from("profiles")
+        .update({ dark_mode: darkMode })
+        .eq("user_id", userId)
+        .then();
+    }
+  }, [darkMode, userId]);
+
+  useEffect(() => {
+    if (userId) {
+      supabase
+        .from("profiles")
+        .update({ notifications_enabled: notifications })
+        .eq("user_id", userId)
+        .then();
+    }
+  }, [notifications, userId]);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
     toast({
       title: "See you soon!",
       description: "Take care of yourself 💜",
     });
-    setTimeout(() => navigate("/auth"), 500);
+    navigate("/auth");
   };
 
-  const handleAvatarSelect = (avatar: typeof avatarOptions[0]) => {
+  const handleAvatarSelect = async (avatar: typeof avatarOptions[0]) => {
     const newAvatar = { type: "emoji" as const, value: avatar.emoji, bg: avatar.bg };
     setSelectedAvatar(newAvatar);
-    localStorage.setItem("emoticam_avatar", JSON.stringify(newAvatar));
     setAvatarDialogOpen(false);
+
+    if (userId) {
+      await supabase
+        .from("profiles")
+        .update({ avatar_type: "emoji", avatar_value: avatar.emoji })
+        .eq("user_id", userId);
+    }
+
     toast({
       title: "Avatar updated!",
       description: "Looking great! ✨",
     });
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 5 * 1024 * 1024) {
@@ -86,11 +157,20 @@ const ProfilePage = () => {
       }
 
       const reader = new FileReader();
-      reader.onloadend = () => {
-        const newAvatar = { type: "image" as const, value: reader.result as string };
+      reader.onloadend = async () => {
+        const imageData = reader.result as string;
+        const newAvatar = { type: "image" as const, value: imageData };
         setSelectedAvatar(newAvatar);
-        localStorage.setItem("emoticam_avatar", JSON.stringify(newAvatar));
         setAvatarDialogOpen(false);
+
+        // Note: For production, you should upload to storage instead of storing base64
+        if (userId) {
+          await supabase
+            .from("profiles")
+            .update({ avatar_type: "image", avatar_value: imageData })
+            .eq("user_id", userId);
+        }
+
         toast({
           title: "Photo updated!",
           description: "Your new profile photo looks wonderful 💜",
@@ -100,9 +180,9 @@ const ProfilePage = () => {
     }
   };
 
-  const stats = [
-    { label: "Check-ins", value: "12", icon: Calendar },
-    { label: "Calm Moments", value: "8", icon: Heart },
+  const statsDisplay = [
+    { label: "Check-ins", value: stats.checkIns.toString(), icon: Calendar },
+    { label: "Calm Moments", value: stats.calmMoments.toString(), icon: Heart },
   ];
 
   return (
@@ -148,7 +228,7 @@ const ProfilePage = () => {
 
           {/* Stats */}
           <div className="grid grid-cols-2 gap-4">
-            {stats.map((stat) => (
+            {statsDisplay.map((stat) => (
               <div
                 key={stat.label}
                 className="bg-muted/50 rounded-2xl p-4 text-center"

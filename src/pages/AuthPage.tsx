@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const AuthPage = () => {
   const navigate = useNavigate();
@@ -12,10 +13,27 @@ const AuthPage = () => {
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
+  useEffect(() => {
+    // Check if user is already logged in
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        navigate("/home");
+      }
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session) {
+        navigate("/home");
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [navigate]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!username.trim() || !password.trim()) {
+    if (!email.trim() || !password.trim()) {
       toast({
         title: "Please fill in all required fields",
         variant: "destructive",
@@ -23,22 +41,88 @@ const AuthPage = () => {
       return;
     }
 
-    setIsLoading(true);
-    
-    // Simulate auth delay
-    await new Promise(resolve => setTimeout(resolve, 800));
-    
-    // Store username in localStorage for demo
-    localStorage.setItem("emoticam_user", username);
-    
-    toast({
-      title: isLogin ? "Welcome back!" : "Account created!",
-      description: "Redirecting to your calm space...",
-    });
+    if (password.length < 6) {
+      toast({
+        title: "Password too short",
+        description: "Password must be at least 6 characters",
+        variant: "destructive",
+      });
+      return;
+    }
 
-    setTimeout(() => {
-      navigate("/home");
-    }, 500);
+    setIsLoading(true);
+
+    try {
+      if (isLogin) {
+        const { error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+
+        if (error) {
+          if (error.message.includes("Invalid login credentials")) {
+            toast({
+              title: "Invalid credentials",
+              description: "Please check your email and password",
+              variant: "destructive",
+            });
+          } else {
+            toast({
+              title: "Login failed",
+              description: error.message,
+              variant: "destructive",
+            });
+          }
+          return;
+        }
+
+        toast({
+          title: "Welcome back!",
+          description: "Redirecting to your calm space...",
+        });
+      } else {
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            emailRedirectTo: `${window.location.origin}/`,
+            data: {
+              username: username || email.split("@")[0],
+            },
+          },
+        });
+
+        if (error) {
+          if (error.message.includes("already registered")) {
+            toast({
+              title: "Account exists",
+              description: "This email is already registered. Try logging in.",
+              variant: "destructive",
+            });
+          } else {
+            toast({
+              title: "Sign up failed",
+              description: error.message,
+              variant: "destructive",
+            });
+          }
+          return;
+        }
+
+        toast({
+          title: "Account created!",
+          description: "Welcome to your calm space...",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Something went wrong",
+        description: "Please try again later",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -72,31 +156,32 @@ const AuthPage = () => {
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-4 animate-fade-in-up stagger-1">
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">Username</label>
-            <Input
-              type="text"
-              placeholder="Enter your username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              className="bg-card/80 backdrop-blur-sm"
-            />
-          </div>
-
           {!isLogin && (
             <div className="space-y-2 animate-fade-in">
               <label className="text-sm font-medium text-foreground">
-                Email <span className="text-muted-foreground">(optional)</span>
+                Username <span className="text-muted-foreground">(optional)</span>
               </label>
               <Input
-                type="email"
-                placeholder="Enter your email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                type="text"
+                placeholder="Enter your username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
                 className="bg-card/80 backdrop-blur-sm"
               />
             </div>
           )}
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground">Email</label>
+            <Input
+              type="email"
+              placeholder="Enter your email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="bg-card/80 backdrop-blur-sm"
+              required
+            />
+          </div>
 
           <div className="space-y-2">
             <label className="text-sm font-medium text-foreground">Password</label>
@@ -106,6 +191,8 @@ const AuthPage = () => {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="bg-card/80 backdrop-blur-sm"
+              required
+              minLength={6}
             />
           </div>
 

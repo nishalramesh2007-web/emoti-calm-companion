@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { LogOut, Bell, Moon, Heart, Calendar, ChevronRight, Camera } from "lucide-react";
+import { LogOut, Bell, Sun, Heart, Calendar, ChevronRight, Camera } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -28,8 +28,8 @@ const ProfilePage = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [username, setUsername] = useState("Friend");
   const [notifications, setNotifications] = useState(true);
-  const [darkMode, setDarkMode] = useState(() => {
-    return document.documentElement.classList.contains("dark");
+  const [lightMode, setLightMode] = useState(() => {
+    return !document.documentElement.classList.contains("dark");
   });
   const [avatarDialogOpen, setAvatarDialogOpen] = useState(false);
   const [selectedAvatar, setSelectedAvatar] = useState<{ type: "emoji" | "image"; value: string; bg?: string }>({
@@ -60,7 +60,7 @@ const ProfilePage = () => {
       if (profile) {
         setUsername(profile.username || "Friend");
         setNotifications(profile.notifications_enabled ?? true);
-        setDarkMode(profile.dark_mode ?? false);
+        setLightMode(!(profile.dark_mode ?? true));
         setStats({
           checkIns: profile.check_ins ?? 0,
           calmMoments: profile.calm_moments ?? 0,
@@ -89,23 +89,23 @@ const ProfilePage = () => {
   }, [navigate]);
 
   useEffect(() => {
-    if (darkMode) {
-      document.documentElement.classList.add("dark");
-      localStorage.setItem("emoticam_theme", "dark");
-    } else {
+    if (lightMode) {
       document.documentElement.classList.remove("dark");
       localStorage.setItem("emoticam_theme", "light");
+    } else {
+      document.documentElement.classList.add("dark");
+      localStorage.setItem("emoticam_theme", "dark");
     }
 
     // Update in database
     if (userId) {
       supabase
         .from("profiles")
-        .update({ dark_mode: darkMode })
+        .update({ dark_mode: !lightMode })
         .eq("user_id", userId)
         .then();
     }
-  }, [darkMode, userId]);
+  }, [lightMode, userId]);
 
   useEffect(() => {
     if (userId) {
@@ -265,14 +265,14 @@ const ProfilePage = () => {
           <div className="flex items-center justify-between p-4">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-calm-blue-light flex items-center justify-center">
-                <Moon className="w-5 h-5 text-calm-blue" />
+                <Sun className="w-5 h-5 text-calm-blue" />
               </div>
               <div>
-                <p className="font-medium text-foreground">Calm Dark Mode</p>
-                <p className="text-sm text-muted-foreground">Easier on the eyes</p>
+                <p className="font-medium text-foreground">Light Mode</p>
+                <p className="text-sm text-muted-foreground">Brighter theme</p>
               </div>
             </div>
-            <Switch checked={darkMode} onCheckedChange={setDarkMode} />
+            <Switch checked={lightMode} onCheckedChange={setLightMode} />
           </div>
         </div>
 

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import EmotionCard from "@/components/EmotionCard";
 import BottomNav from "@/components/BottomNav";
+import { supabase } from "@/integrations/supabase/client";
 
 const emotionResponses = {
   Happy: [
@@ -70,11 +71,35 @@ const HomePage = () => {
   const [showResponse, setShowResponse] = useState(false);
 
   useEffect(() => {
-    const storedUser = localStorage.getItem("emoticam_user");
-    if (storedUser) {
-      setUsername(storedUser);
-    }
-  }, []);
+    const loadProfile = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        navigate("/auth");
+        return;
+      }
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("username")
+        .eq("user_id", session.user.id)
+        .maybeSingle();
+
+      if (profile?.username) {
+        setUsername(profile.username);
+      }
+    };
+
+    loadProfile();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!session) {
+        navigate("/auth");
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [navigate]);
 
   const handleEmotionSelect = (index: number) => {
     const emotion = emotions[index].label;

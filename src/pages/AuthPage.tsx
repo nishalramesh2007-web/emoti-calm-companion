@@ -157,11 +157,9 @@ const AuthPage = () => {
         {/* Form */}
         <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-4 animate-fade-in-up stagger-1">
           {!isLogin && (
-            <div className="space-y-2 animate-fade-in">
-              <label className="text-sm font-medium text-foreground">
-                Username <span className="text-muted-foreground">(optional)</span>
-              </label>
-              <Input
+          <div className="space-y-2 animate-fade-in">
+            <label className="text-sm font-medium text-foreground">Username</label>
+            <Input
                 type="text"
                 placeholder="Enter your username"
                 value={username}

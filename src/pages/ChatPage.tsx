@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import BottomNav from "@/components/BottomNav";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
 
 interface Message {
   id: string;
@@ -12,27 +13,17 @@ interface Message {
   content: string;
 }
 
-const systemPrompt = `You are EMOTICAM, a compassionate and gentle AI companion designed to support emotional well-being. Your personality traits:
-
-- Empathetic and understanding, never judgmental
-- Calm and soothing in your responses
-- Encouraging mindfulness and self-compassion
-- Offering gentle suggestions, not commands
-- Using warm, supportive language
-- Keeping responses concise but meaningful (2-4 sentences typically)
-- Occasionally suggesting breathing exercises or grounding techniques when appropriate
-
-Always prioritize the user's emotional safety and comfort. If they express serious distress, gently encourage them to seek professional support while remaining supportive.`;
+const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
 
 const ChatPage = () => {
   const location = useLocation();
+  const { toast } = useToast();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Add initial message if coming from emotion selection
     if (location.state?.initialMessage) {
       setMessages([
         {
@@ -65,30 +56,143 @@ const ChatPage = () => {
       content: input.trim(),
     };
 
-    setMessages((prev) => [...prev, userMessage]);
+    const updatedMessages = [...messages, userMessage];
+    setMessages(updatedMessages);
     setInput("");
     setIsLoading(true);
 
-    // Simulate AI response for demo (replace with actual API call)
-    const responses = [
-      "I hear you, and your feelings are completely valid. Take a moment to breathe deeply with me. 🌿",
-      "Thank you for sharing that with me. Remember, it's okay to not be okay sometimes. You're being brave by opening up.",
-      "That sounds really challenging. Would you like to try a brief grounding exercise together?",
-      "I'm here with you. Let's take this one step at a time. What feels most important to address right now?",
-      "Your strength in facing these emotions is admirable. How can I best support you in this moment?",
-      "It takes courage to express how you feel. Let's explore this together, at your own pace.",
-    ];
+    let assistantContent = "";
 
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    try {
+      const response = await fetch(CHAT_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
+        body: JSON.stringify({
+          messages: updatedMessages.map((m) => ({
+            role: m.role,
+            content: m.content,
+          })),
+        }),
+      });
 
-    const aiMessage: Message = {
-      id: (Date.now() + 1).toString(),
-      role: "assistant",
-      content: responses[Math.floor(Math.random() * responses.length)],
-    };
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        
+        if (response.status === 429) {
+          toast({
+            title: "Please wait",
+            description: "Too many requests. Please try again in a moment.",
+            variant: "destructive",
+          });
+        } else if (response.status === 402) {
+          toast({
+            title: "Credits needed",
+            description: "AI credits exhausted. Please add credits to continue.",
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "Error",
+            description: errorData.error || "Failed to get response",
+            variant: "destructive",
+          });
+        }
+        setIsLoading(false);
+        return;
+      }
 
-    setMessages((prev) => [...prev, aiMessage]);
-    setIsLoading(false);
+      const reader = response.body?.getReader();
+      if (!reader) throw new Error("No response body");
+
+      const decoder = new TextDecoder();
+      let textBuffer = "";
+
+      const assistantId = (Date.now() + 1).toString();
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        textBuffer += decoder.decode(value, { stream: true });
+
+        let newlineIndex: number;
+        while ((newlineIndex = textBuffer.indexOf("\n")) !== -1) {
+          let line = textBuffer.slice(0, newlineIndex);
+          textBuffer = textBuffer.slice(newlineIndex + 1);
+
+          if (line.endsWith("\r")) line = line.slice(0, -1);
+          if (line.startsWith(":") || line.trim() === "") continue;
+          if (!line.startsWith("data: ")) continue;
+
+          const jsonStr = line.slice(6).trim();
+          if (jsonStr === "[DONE]") break;
+
+          try {
+            const parsed = JSON.parse(jsonStr);
+            const content = parsed.choices?.[0]?.delta?.content as string | undefined;
+            if (content) {
+              assistantContent += content;
+              setMessages((prev) => {
+                const last = prev[prev.length - 1];
+                if (last?.role === "assistant" && last.id === assistantId) {
+                  return prev.map((m, i) =>
+                    i === prev.length - 1 ? { ...m, content: assistantContent } : m
+                  );
+                }
+                return [...prev, { id: assistantId, role: "assistant", content: assistantContent }];
+              });
+            }
+          } catch {
+            textBuffer = line + "\n" + textBuffer;
+            break;
+          }
+        }
+      }
+
+      // Final flush
+      if (textBuffer.trim()) {
+        for (let raw of textBuffer.split("\n")) {
+          if (!raw) continue;
+          if (raw.endsWith("\r")) raw = raw.slice(0, -1);
+          if (raw.startsWith(":") || raw.trim() === "") continue;
+          if (!raw.startsWith("data: ")) continue;
+          const jsonStr = raw.slice(6).trim();
+          if (jsonStr === "[DONE]") continue;
+          try {
+            const parsed = JSON.parse(jsonStr);
+            const content = parsed.choices?.[0]?.delta?.content as string | undefined;
+            if (content) {
+              assistantContent += content;
+            }
+          } catch {
+            /* ignore */
+          }
+        }
+        if (assistantContent) {
+          setMessages((prev) => {
+            const last = prev[prev.length - 1];
+            if (last?.role === "assistant" && last.id === assistantId) {
+              return prev.map((m, i) =>
+                i === prev.length - 1 ? { ...m, content: assistantContent } : m
+              );
+            }
+            return [...prev, { id: assistantId, role: "assistant", content: assistantContent }];
+          });
+        }
+      }
+    } catch (error) {
+      console.error("Chat error:", error);
+      toast({
+        title: "Connection error",
+        description: "Failed to connect to the AI. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -138,7 +242,7 @@ const ChatPage = () => {
           </div>
         ))}
 
-        {isLoading && (
+        {isLoading && messages[messages.length - 1]?.role !== "assistant" && (
           <div className="flex justify-start animate-fade-in">
             <div className="bg-card border border-border shadow-soft rounded-2xl rounded-bl-md px-4 py-3">
               <div className="flex gap-1.5">

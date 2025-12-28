@@ -1,17 +1,18 @@
 import { useState, useEffect } from "react";
-import { ArrowLeft, Save, Trash2, Plus } from "lucide-react";
+import { ArrowLeft, Save, Trash2, Plus, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import BottomNav from "@/components/BottomNav";
+import { supabase } from "@/integrations/supabase/client";
 
 interface JournalEntry {
   id: string;
   name: string;
   content: string;
-  createdAt: string;
+  created_at: string;
 }
 
 const GratitudeJournalPage = () => {
@@ -21,15 +22,48 @@ const GratitudeJournalPage = () => {
   const [isWriting, setIsWriting] = useState(false);
   const [journalName, setJournalName] = useState("");
   const [journalContent, setJournalContent] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    const saved = localStorage.getItem("gratitude_journals");
-    if (saved) {
-      setEntries(JSON.parse(saved));
-    }
-  }, []);
+    const loadEntries = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        navigate("/auth");
+        return;
+      }
 
-  const saveEntry = () => {
+      const { data, error } = await supabase
+        .from("gratitude_entries")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        console.error("Error loading entries:", error);
+        toast({
+          title: "Error loading entries",
+          description: "Please try again later",
+          variant: "destructive",
+        });
+      } else {
+        setEntries(data || []);
+      }
+      setIsLoading(false);
+    };
+
+    loadEntries();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!session) {
+        navigate("/auth");
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [navigate, toast]);
+
+  const saveEntry = async () => {
     if (!journalName.trim() || !journalContent.trim()) {
       toast({
         title: "Please fill in both fields",
@@ -39,40 +73,88 @@ const GratitudeJournalPage = () => {
       return;
     }
 
-    const newEntry: JournalEntry = {
-      id: Date.now().toString(),
-      name: journalName.trim(),
-      content: journalContent.trim(),
-      createdAt: new Date().toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-      }),
-    };
+    setIsSaving(true);
 
-    const updatedEntries = [newEntry, ...entries];
-    setEntries(updatedEntries);
-    localStorage.setItem("gratitude_journals", JSON.stringify(updatedEntries));
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (!session) {
+      toast({
+        title: "Please log in",
+        description: "You need to be logged in to save entries",
+        variant: "destructive",
+      });
+      setIsSaving(false);
+      return;
+    }
 
-    toast({
-      title: "Journal saved ✨",
-      description: "Your gratitude has been recorded.",
-    });
+    const { data, error } = await supabase
+      .from("gratitude_entries")
+      .insert({
+        user_id: session.user.id,
+        name: journalName.trim(),
+        content: journalContent.trim(),
+      })
+      .select()
+      .single();
 
-    setJournalName("");
-    setJournalContent("");
-    setIsWriting(false);
+    if (error) {
+      console.error("Error saving entry:", error);
+      toast({
+        title: "Error saving entry",
+        description: "Please try again later",
+        variant: "destructive",
+      });
+    } else {
+      setEntries([data, ...entries]);
+      toast({
+        title: "Journal saved ✨",
+        description: "Your gratitude has been recorded.",
+      });
+      setJournalName("");
+      setJournalContent("");
+      setIsWriting(false);
+    }
+
+    setIsSaving(false);
   };
 
-  const deleteEntry = (id: string) => {
-    const updatedEntries = entries.filter((entry) => entry.id !== id);
-    setEntries(updatedEntries);
-    localStorage.setItem("gratitude_journals", JSON.stringify(updatedEntries));
-    toast({
-      title: "Entry deleted",
-      description: "Journal entry has been removed.",
+  const deleteEntry = async (id: string) => {
+    const { error } = await supabase
+      .from("gratitude_entries")
+      .delete()
+      .eq("id", id);
+
+    if (error) {
+      console.error("Error deleting entry:", error);
+      toast({
+        title: "Error deleting entry",
+        description: "Please try again later",
+        variant: "destructive",
+      });
+    } else {
+      setEntries(entries.filter((entry) => entry.id !== id));
+      toast({
+        title: "Entry deleted",
+        description: "Journal entry has been removed.",
+      });
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
     });
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background pb-24">
@@ -113,14 +195,20 @@ const GratitudeJournalPage = () => {
                 onClick={() => setIsWriting(false)}
                 variant="outline"
                 className="flex-1 rounded-xl"
+                disabled={isSaving}
               >
                 Cancel
               </Button>
               <Button
                 onClick={saveEntry}
                 className="flex-1 rounded-xl bg-primary hover:bg-primary/90"
+                disabled={isSaving}
               >
-                <Save className="w-4 h-4 mr-2" />
+                {isSaving ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Save className="w-4 h-4 mr-2" />
+                )}
                 Save Journal
               </Button>
             </div>
@@ -148,7 +236,7 @@ const GratitudeJournalPage = () => {
                 <div className="flex items-start justify-between mb-2">
                   <div>
                     <h3 className="font-semibold text-foreground">{entry.name}</h3>
-                    <p className="text-xs text-muted-foreground">{entry.createdAt}</p>
+                    <p className="text-xs text-muted-foreground">{formatDate(entry.created_at)}</p>
                   </div>
                   <button
                     onClick={() => deleteEntry(entry.id)}

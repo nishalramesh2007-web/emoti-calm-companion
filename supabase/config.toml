@@ -2,3 +2,6 @@ project_id = "clparhdjinwcvjnwrzwl"
 
 [functions.chat]
 verify_jwt = false
+
+[functions.analyze-mood]
+verify_jwt = false

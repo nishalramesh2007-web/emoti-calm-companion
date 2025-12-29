@@ -62,6 +62,33 @@ export type Database = {
         }
         Relationships: []
       }
+      mood_entries: {
+        Row: {
+          created_at: string
+          id: string
+          message_snippet: string | null
+          mood_label: string
+          mood_score: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message_snippet?: string | null
+          mood_label: string
+          mood_score: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message_snippet?: string | null
+          mood_label?: string
+          mood_score?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_type: string | null

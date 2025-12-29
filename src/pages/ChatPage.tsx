@@ -1,12 +1,13 @@
 import { useState, useRef, useEffect } from "react";
 import { useLocation } from "react-router-dom";
-import { Send, Trash2 } from "lucide-react";
+import { Send, Trash2, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import BottomNav from "@/components/BottomNav";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import MoodTrends from "@/components/MoodTrends";
 
 interface Message {
   id: string;
@@ -15,6 +16,7 @@ interface Message {
 }
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
+const MOOD_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-mood`;
 
 const ChatPage = () => {
   const location = useLocation();
@@ -24,6 +26,8 @@ const ChatPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
+  const [showMoodTrends, setShowMoodTrends] = useState(false);
+  const [moodKey, setMoodKey] = useState(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Get user and load conversation history
@@ -105,6 +109,47 @@ const ChatPage = () => {
     }
   };
 
+  const analyzeMood = async (message: string) => {
+    if (!userId) return;
+
+    try {
+      const response = await fetch(MOOD_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
+        body: JSON.stringify({ message }),
+      });
+
+      if (!response.ok) {
+        console.error("Mood analysis failed");
+        return;
+      }
+
+      const moodData = await response.json();
+      
+      // Save mood entry to database
+      const { error } = await supabase
+        .from("mood_entries")
+        .insert({
+          user_id: userId,
+          mood_score: moodData.score,
+          mood_label: moodData.label,
+          message_snippet: message.substring(0, 100),
+        });
+
+      if (error) {
+        console.error("Error saving mood entry:", error);
+      } else {
+        // Refresh mood trends
+        setMoodKey((k) => k + 1);
+      }
+    } catch (error) {
+      console.error("Mood analysis error:", error);
+    }
+  };
+
   const clearHistory = async () => {
     if (!userId) return;
 
@@ -153,6 +198,8 @@ const ChatPage = () => {
     // Save user message to database
     if (userId) {
       await saveMessage(userId, "user", userMessage.content);
+      // Analyze mood in background
+      analyzeMood(userMessage.content);
     }
 
     let assistantContent = "";
@@ -328,19 +375,41 @@ const ChatPage = () => {
               <p className="text-sm text-muted-foreground">Your calm companion</p>
             </div>
           </div>
-          {userId && messages.length > 1 && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={clearHistory}
-              className="text-muted-foreground hover:text-destructive"
-              title="Clear conversation"
-            >
-              <Trash2 className="w-5 h-5" />
-            </Button>
-          )}
+          <div className="flex items-center gap-2">
+            {userId && (
+              <Button
+                variant={showMoodTrends ? "default" : "ghost"}
+                size="icon"
+                onClick={() => setShowMoodTrends(!showMoodTrends)}
+                className={cn(
+                  showMoodTrends ? "" : "text-muted-foreground hover:text-primary"
+                )}
+                title="Mood trends"
+              >
+                <BarChart3 className="w-5 h-5" />
+              </Button>
+            )}
+            {userId && messages.length > 1 && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={clearHistory}
+                className="text-muted-foreground hover:text-destructive"
+                title="Clear conversation"
+              >
+                <Trash2 className="w-5 h-5" />
+              </Button>
+            )}
+          </div>
         </div>
       </div>
+
+      {/* Mood Trends Panel */}
+      {showMoodTrends && (
+        <div className="px-4 py-4 border-b border-border bg-muted/30 animate-fade-in">
+          <MoodTrends key={moodKey} />
+        </div>
+      )}
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-4 py-6 space-y-4">

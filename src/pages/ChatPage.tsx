@@ -1,11 +1,12 @@
 import { useState, useRef, useEffect } from "react";
 import { useLocation } from "react-router-dom";
-import { Send } from "lucide-react";
+import { Send, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import BottomNav from "@/components/BottomNav";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Message {
   id: string;
@@ -21,31 +22,119 @@ const ChatPage = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // Get user and load conversation history
   useEffect(() => {
-    if (location.state?.initialMessage) {
-      setMessages([
-        {
-          id: "initial",
-          role: "assistant",
-          content: location.state.initialMessage,
-        },
-      ]);
-    } else {
-      setMessages([
-        {
+    const loadHistory = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        setIsLoadingHistory(false);
+        setMessages([{
           id: "welcome",
           role: "assistant",
           content: "Hello, I'm here to listen and support you. How are you feeling today? Take your time — there's no rush here. 💜",
-        },
-      ]);
-    }
+        }]);
+        return;
+      }
+
+      setUserId(user.id);
+
+      // Load previous messages
+      const { data: history, error } = await supabase
+        .from("chat_messages")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: true });
+
+      if (error) {
+        console.error("Error loading chat history:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load conversation history",
+          variant: "destructive",
+        });
+      }
+
+      if (history && history.length > 0) {
+        setMessages(history.map((msg) => ({
+          id: msg.id,
+          role: msg.role as "user" | "assistant",
+          content: msg.content,
+        })));
+      } else if (location.state?.initialMessage) {
+        const initialMsg: Message = {
+          id: "initial",
+          role: "assistant",
+          content: location.state.initialMessage,
+        };
+        setMessages([initialMsg]);
+        // Save initial message
+        await saveMessage(user.id, "assistant", location.state.initialMessage);
+      } else {
+        const welcomeMsg: Message = {
+          id: "welcome",
+          role: "assistant",
+          content: "Hello, I'm here to listen and support you. How are you feeling today? Take your time — there's no rush here. 💜",
+        };
+        setMessages([welcomeMsg]);
+        // Save welcome message
+        await saveMessage(user.id, "assistant", welcomeMsg.content);
+      }
+
+      setIsLoadingHistory(false);
+    };
+
+    loadHistory();
   }, [location.state]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  const saveMessage = async (uid: string, role: "user" | "assistant", content: string) => {
+    const { error } = await supabase
+      .from("chat_messages")
+      .insert({ user_id: uid, role, content });
+    
+    if (error) {
+      console.error("Error saving message:", error);
+    }
+  };
+
+  const clearHistory = async () => {
+    if (!userId) return;
+
+    const { error } = await supabase
+      .from("chat_messages")
+      .delete()
+      .eq("user_id", userId);
+
+    if (error) {
+      toast({
+        title: "Error",
+        description: "Failed to clear conversation",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const welcomeMsg: Message = {
+      id: "welcome-new",
+      role: "assistant",
+      content: "I've cleared our previous conversation. How are you feeling right now? I'm here for you. 💜",
+    };
+    setMessages([welcomeMsg]);
+    await saveMessage(userId, "assistant", welcomeMsg.content);
+
+    toast({
+      title: "Conversation cleared",
+      description: "Your chat history has been deleted",
+    });
+  };
 
   const sendMessage = async () => {
     if (!input.trim() || isLoading) return;
@@ -60,6 +149,11 @@ const ChatPage = () => {
     setMessages(updatedMessages);
     setInput("");
     setIsLoading(true);
+
+    // Save user message to database
+    if (userId) {
+      await saveMessage(userId, "user", userMessage.content);
+    }
 
     let assistantContent = "";
 
@@ -183,6 +277,11 @@ const ChatPage = () => {
           });
         }
       }
+
+      // Save assistant message to database
+      if (userId && assistantContent) {
+        await saveMessage(userId, "assistant", assistantContent);
+      }
     } catch (error) {
       console.error("Chat error:", error);
       toast({
@@ -202,20 +301,44 @@ const ChatPage = () => {
     }
   };
 
+  if (isLoadingHistory) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-10 h-10 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+          <p className="text-muted-foreground text-sm">Loading your conversation...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background pb-24 flex flex-col">
       {/* Header */}
       <div className="sticky top-0 bg-card/95 backdrop-blur-lg border-b border-border px-6 py-4 z-10">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-calm-blue flex items-center justify-center">
-            <svg className="w-5 h-5 text-primary-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-            </svg>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-calm-blue flex items-center justify-center">
+              <svg className="w-5 h-5 text-primary-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+              </svg>
+            </div>
+            <div>
+              <h1 className="font-display text-xl font-bold text-foreground">EMOTICAM</h1>
+              <p className="text-sm text-muted-foreground">Your calm companion</p>
+            </div>
           </div>
-          <div>
-            <h1 className="font-display text-xl font-bold text-foreground">EMOTICAM</h1>
-            <p className="text-sm text-muted-foreground">Your calm companion</p>
-          </div>
+          {userId && messages.length > 1 && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={clearHistory}
+              className="text-muted-foreground hover:text-destructive"
+              title="Clear conversation"
+            >
+              <Trash2 className="w-5 h-5" />
+            </Button>
+          )}
         </div>
       </div>
 

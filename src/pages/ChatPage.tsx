@@ -39,19 +39,40 @@ const ChatPage = () => {
   useEffect(() => {
     if (SpeechRecognition) {
       const recognition = new SpeechRecognition();
-      recognition.continuous = false;
+      recognition.continuous = true;
       recognition.interimResults = true;
       recognition.lang = "en-US";
+      recognition.maxAlternatives = 1;
 
       recognition.onresult = (event: any) => {
-        const transcript = Array.from(event.results)
-          .map((result: any) => result[0].transcript)
-          .join("");
-        setInput(transcript);
+        let finalTranscript = "";
+        let interimTranscript = "";
+        
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const transcript = event.results[i][0].transcript;
+          if (event.results[i].isFinal) {
+            finalTranscript += transcript;
+          } else {
+            interimTranscript += transcript;
+          }
+        }
+        
+        setInput((prev) => {
+          if (finalTranscript) {
+            return prev + finalTranscript;
+          }
+          return prev.split(" ").slice(0, -interimTranscript.split(" ").length).join(" ") + 
+                 (prev ? " " : "") + interimTranscript;
+        });
       };
 
       recognition.onerror = (event: any) => {
         console.error("Speech recognition error:", event.error);
+        // Don't stop listening on "no-speech" - just let it continue
+        if (event.error === "no-speech") {
+          // Auto-restart if still supposed to be listening
+          return;
+        }
         setIsListening(false);
         if (event.error === "not-allowed") {
           toast({
@@ -59,18 +80,36 @@ const ChatPage = () => {
             description: "Please allow microphone access to use voice input",
             variant: "destructive",
           });
+        } else if (event.error === "network") {
+          toast({
+            title: "Network error",
+            description: "Please check your internet connection",
+            variant: "destructive",
+          });
         }
       };
 
       recognition.onend = () => {
-        setIsListening(false);
+        // Auto-restart if still supposed to be listening (browser auto-stops after silence)
+        if (recognitionRef.current?.shouldBeListening) {
+          try {
+            recognition.start();
+          } catch (e) {
+            setIsListening(false);
+            recognitionRef.current.shouldBeListening = false;
+          }
+        } else {
+          setIsListening(false);
+        }
       };
 
       recognitionRef.current = recognition;
+      recognitionRef.current.shouldBeListening = false;
     }
 
     return () => {
       if (recognitionRef.current) {
+        recognitionRef.current.shouldBeListening = false;
         recognitionRef.current.abort();
       }
     };
@@ -87,14 +126,21 @@ const ChatPage = () => {
     }
 
     if (isListening) {
+      recognitionRef.current.shouldBeListening = false;
       recognitionRef.current?.stop();
       setIsListening(false);
     } else {
       try {
+        recognitionRef.current.shouldBeListening = true;
         recognitionRef.current?.start();
         setIsListening(true);
+        toast({
+          title: "Listening...",
+          description: "Speak now. Tap the mic button again to stop.",
+        });
       } catch (error) {
         console.error("Failed to start recognition:", error);
+        recognitionRef.current.shouldBeListening = false;
       }
     }
   }, [isListening, toast]);

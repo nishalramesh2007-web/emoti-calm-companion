@@ -1,6 +1,6 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useLocation } from "react-router-dom";
-import { Send, Trash2, BarChart3 } from "lucide-react";
+import { Send, Trash2, BarChart3, Mic, MicOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import BottomNav from "@/components/BottomNav";
@@ -18,6 +18,9 @@ interface Message {
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
 const MOOD_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-mood`;
 
+// Check for SpeechRecognition support
+const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+
 const ChatPage = () => {
   const location = useLocation();
   const { toast } = useToast();
@@ -28,7 +31,73 @@ const ChatPage = () => {
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
   const [showMoodTrends, setShowMoodTrends] = useState(false);
   const [moodKey, setMoodKey] = useState(0);
+  const [isListening, setIsListening] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const recognitionRef = useRef<any>(null);
+
+  // Initialize speech recognition
+  useEffect(() => {
+    if (SpeechRecognition) {
+      const recognition = new SpeechRecognition();
+      recognition.continuous = false;
+      recognition.interimResults = true;
+      recognition.lang = "en-US";
+
+      recognition.onresult = (event: any) => {
+        const transcript = Array.from(event.results)
+          .map((result: any) => result[0].transcript)
+          .join("");
+        setInput(transcript);
+      };
+
+      recognition.onerror = (event: any) => {
+        console.error("Speech recognition error:", event.error);
+        setIsListening(false);
+        if (event.error === "not-allowed") {
+          toast({
+            title: "Microphone access denied",
+            description: "Please allow microphone access to use voice input",
+            variant: "destructive",
+          });
+        }
+      };
+
+      recognition.onend = () => {
+        setIsListening(false);
+      };
+
+      recognitionRef.current = recognition;
+    }
+
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.abort();
+      }
+    };
+  }, [toast]);
+
+  const toggleVoiceInput = useCallback(() => {
+    if (!SpeechRecognition) {
+      toast({
+        title: "Not supported",
+        description: "Voice input is not supported in your browser",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (isListening) {
+      recognitionRef.current?.stop();
+      setIsListening(false);
+    } else {
+      try {
+        recognitionRef.current?.start();
+        setIsListening(true);
+      } catch (error) {
+        console.error("Failed to start recognition:", error);
+      }
+    }
+  }, [isListening, toast]);
 
   // Get user and load conversation history
   useEffect(() => {
@@ -451,13 +520,26 @@ const ChatPage = () => {
 
       {/* Input */}
       <div className="fixed bottom-20 left-0 right-0 bg-card/95 backdrop-blur-lg border-t border-border px-4 py-3 z-10">
-        <div className="max-w-2xl mx-auto flex items-center gap-3">
+        <div className="max-w-2xl mx-auto flex items-center gap-2">
+          <Button
+            onClick={toggleVoiceInput}
+            disabled={isLoading}
+            size="icon"
+            variant={isListening ? "default" : "outline"}
+            className={cn(
+              "shrink-0 transition-all",
+              isListening && "bg-destructive hover:bg-destructive/90 animate-pulse"
+            )}
+            title={isListening ? "Stop listening" : "Voice input"}
+          >
+            {isListening ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+          </Button>
           <Input
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyPress={handleKeyPress}
-            placeholder="Share what's on your mind..."
-            className="flex-1 bg-muted/50"
+            placeholder={isListening ? "Listening..." : "Share what's on your mind..."}
+            className={cn("flex-1 bg-muted/50", isListening && "border-primary")}
             disabled={isLoading}
           />
           <Button

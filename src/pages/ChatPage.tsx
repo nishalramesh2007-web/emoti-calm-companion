@@ -33,6 +33,7 @@ const ChatPage = () => {
   const [isListening, setIsListening] = useState(false);
   const [chatFont, setChatFont] = useState(() => localStorage.getItem("emoticam_chat_font") || "quicksand");
   const [chatColor, setChatColor] = useState(() => localStorage.getItem("emoticam_chat_color") || "lavender");
+  const [chatPersonality, setChatPersonality] = useState(() => localStorage.getItem("emoticam_chat_personality") || "gentle");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
 
@@ -210,6 +211,7 @@ const ChatPage = () => {
     const handleStorageChange = () => {
       setChatFont(localStorage.getItem("emoticam_chat_font") || "quicksand");
       setChatColor(localStorage.getItem("emoticam_chat_color") || "lavender");
+      setChatPersonality(localStorage.getItem("emoticam_chat_personality") || "gentle");
     };
     window.addEventListener("storage", handleStorageChange);
     return () => window.removeEventListener("storage", handleStorageChange);
@@ -319,7 +321,8 @@ const ChatPage = () => {
           messages: updatedMessages.map(m => ({
             role: m.role,
             content: m.content
-          }))
+          })),
+          personality: chatPersonality
         })
       });
       if (!response.ok) {

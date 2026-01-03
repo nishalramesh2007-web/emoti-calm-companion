@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { LogOut, Bell, Sun, Heart, Calendar, ChevronRight, Camera, MessageCircle, Type, Palette } from "lucide-react";
+import { LogOut, Bell, Sun, Heart, Calendar, ChevronRight, Camera, Type, Palette, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -20,6 +20,14 @@ const colorOptions = [
   { value: "mint", label: "Mint", userBg: "bg-calm-mint", userText: "text-foreground", aiBg: "bg-calm-mint-light", aiText: "text-foreground" },
   { value: "peach", label: "Peach", userBg: "bg-calm-peach", userText: "text-foreground", aiBg: "bg-calm-peach-light", aiText: "text-foreground" },
   { value: "blue", label: "Ocean", userBg: "bg-calm-blue", userText: "text-foreground", aiBg: "bg-calm-blue-light", aiText: "text-foreground" },
+];
+
+const personalityOptions = [
+  { value: "gentle", label: "Gentle & Calm", emoji: "🌸", description: "Soft, soothing responses" },
+  { value: "cheerful", label: "Cheerful", emoji: "☀️", description: "Upbeat and encouraging" },
+  { value: "wise", label: "Wise Mentor", emoji: "🦉", description: "Thoughtful guidance" },
+  { value: "playful", label: "Playful Friend", emoji: "🌈", description: "Light and fun" },
+  { value: "nurturing", label: "Nurturing", emoji: "🌿", description: "Warm and caring" },
 ];
 
 const avatarOptions = [
@@ -55,6 +63,7 @@ const ProfilePage = () => {
   const [userId, setUserId] = useState<string | null>(null);
   const [chatFont, setChatFont] = useState(() => localStorage.getItem("emoticam_chat_font") || "quicksand");
   const [chatColor, setChatColor] = useState(() => localStorage.getItem("emoticam_chat_color") || "lavender");
+  const [chatPersonality, setChatPersonality] = useState(() => localStorage.getItem("emoticam_chat_personality") || "gentle");
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -326,7 +335,7 @@ const ProfilePage = () => {
           </div>
 
           {/* Chat Color */}
-          <div className="flex items-center justify-between p-4">
+          <div className="flex items-center justify-between p-4 border-b border-border">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-calm-peach-light flex items-center justify-center">
                 <Palette className="w-5 h-5 text-calm-peach" />
@@ -350,6 +359,38 @@ const ProfilePage = () => {
                     <div className="flex items-center gap-2">
                       <div className={`w-4 h-4 rounded-full ${color.userBg}`} />
                       <span>{color.label}</span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* AI Personality */}
+          <div className="flex items-center justify-between p-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-calm-mint-light flex items-center justify-center">
+                <Sparkles className="w-5 h-5 text-calm-mint" />
+              </div>
+              <div>
+                <p className="font-medium text-foreground">AI Personality</p>
+                <p className="text-sm text-muted-foreground">Companion tone</p>
+              </div>
+            </div>
+            <Select value={chatPersonality} onValueChange={(value) => {
+              setChatPersonality(value);
+              localStorage.setItem("emoticam_chat_personality", value);
+              toast({ title: "Personality updated!", description: "Your companion will adjust their tone" });
+            }}>
+              <SelectTrigger className="w-[140px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {personalityOptions.map((personality) => (
+                  <SelectItem key={personality.value} value={personality.value}>
+                    <div className="flex items-center gap-2">
+                      <span>{personality.emoji}</span>
+                      <span>{personality.label}</span>
                     </div>
                   </SelectItem>
                 ))}

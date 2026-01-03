@@ -499,37 +499,37 @@ const ChatPage = () => {
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-4 py-6 space-y-4">
         {messages.map(message => {
-          const fontClass = chatFont === "playfair" ? "font-display" : chatFont === "system" ? "font-system" : "font-sans";
-          const getUserBubbleClasses = () => {
-            switch (chatColor) {
-              case "mint": return "bg-calm-mint text-foreground";
-              case "peach": return "bg-calm-peach text-foreground";
-              case "blue": return "bg-calm-blue text-foreground";
-              default: return "bg-primary text-primary-foreground";
-            }
-          };
-          const getAiBubbleClasses = () => {
-            switch (chatColor) {
-              case "mint": return "bg-calm-mint-light text-foreground border-calm-mint/30";
-              case "peach": return "bg-calm-peach-light text-foreground border-calm-peach/30";
-              case "blue": return "bg-calm-blue-light text-foreground border-calm-blue/30";
-              default: return "bg-card text-foreground border-border";
-            }
-          };
-          
-          return (
-            <div key={message.id} className={cn("flex animate-fade-in-up", message.role === "user" ? "justify-end" : "justify-start")}>
-              <div className={cn(
-                "max-w-[85%] rounded-2xl px-4 py-3",
-                message.role === "user" 
-                  ? `${getUserBubbleClasses()} rounded-br-md` 
-                  : `${getAiBubbleClasses()} border shadow-soft rounded-bl-md`
-              )}>
+        const fontClass = chatFont === "playfair" ? "font-display" : chatFont === "system" ? "font-system" : "font-sans";
+        const getUserBubbleClasses = () => {
+          switch (chatColor) {
+            case "mint":
+              return "bg-calm-mint text-foreground";
+            case "peach":
+              return "bg-calm-peach text-foreground";
+            case "blue":
+              return "bg-calm-blue text-foreground";
+            default:
+              return "bg-primary text-primary-foreground";
+          }
+        };
+        const getAiBubbleClasses = () => {
+          switch (chatColor) {
+            case "mint":
+              return "bg-calm-mint-light text-foreground border-calm-mint/30";
+            case "peach":
+              return "bg-calm-peach-light text-foreground border-calm-peach/30";
+            case "blue":
+              return "bg-calm-blue-light text-foreground border-calm-blue/30";
+            default:
+              return "bg-card text-foreground border-border";
+          }
+        };
+        return <div key={message.id} className={cn("flex animate-fade-in-up", message.role === "user" ? "justify-end" : "justify-start")}>
+              <div className={cn("max-w-[85%] rounded-2xl px-4 py-3", message.role === "user" ? `${getUserBubbleClasses()} rounded-br-md` : `${getAiBubbleClasses()} border shadow-soft rounded-bl-md`)}>
                 <p className={cn("text-sm leading-relaxed", fontClass)}>{message.content}</p>
               </div>
-            </div>
-          );
-        })}
+            </div>;
+      })}
 
         {isLoading && messages[messages.length - 1]?.role !== "assistant" && <div className="flex justify-start animate-fade-in">
             <div className="bg-card border border-border shadow-soft rounded-2xl rounded-bl-md px-4 py-3">
@@ -545,7 +545,7 @@ const ChatPage = () => {
       </div>
 
       {/* Input */}
-      <div className="fixed bottom-20 left-0 right-0 bg-card/95 backdrop-blur-lg border-t border-border z-10 py-[5px] px-px my-0 mx-0 border-0">
+      <div className="fixed bottom-20 left-0 right-0 bg-card/95 backdrop-blur-lg border-t border-border z-10 py-[5px] my-0 mx-0 border-0 px-[16px] mb-[5px] shadow-sm">
         <div className="max-w-2xl mx-auto flex items-center gap-2">
           <Button onClick={toggleVoiceInput} disabled={isLoading} size="icon" variant={isListening ? "default" : "outline"} className={cn("shrink-0 transition-all", isListening && "bg-destructive hover:bg-destructive/90 animate-pulse")} title={isListening ? "Stop listening" : "Voice input"}>
             {isListening ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}

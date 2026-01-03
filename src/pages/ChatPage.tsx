@@ -31,6 +31,8 @@ const ChatPage = () => {
   const [showMoodTrends, setShowMoodTrends] = useState(false);
   const [moodKey, setMoodKey] = useState(0);
   const [isListening, setIsListening] = useState(false);
+  const [chatFont, setChatFont] = useState(() => localStorage.getItem("emoticam_chat_font") || "quicksand");
+  const [chatColor, setChatColor] = useState(() => localStorage.getItem("emoticam_chat_color") || "lavender");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
 
@@ -202,6 +204,16 @@ const ChatPage = () => {
       behavior: "smooth"
     });
   }, [messages]);
+
+  // Listen for chat customization changes from profile
+  useEffect(() => {
+    const handleStorageChange = () => {
+      setChatFont(localStorage.getItem("emoticam_chat_font") || "quicksand");
+      setChatColor(localStorage.getItem("emoticam_chat_color") || "lavender");
+    };
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
+  }, []);
   const saveMessage = async (uid: string, role: "user" | "assistant", content: string) => {
     const {
       error
@@ -483,11 +495,38 @@ const ChatPage = () => {
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-4 py-6 space-y-4">
-        {messages.map(message => <div key={message.id} className={cn("flex animate-fade-in-up", message.role === "user" ? "justify-end" : "justify-start")}>
-            <div className={cn("max-w-[85%] rounded-2xl px-4 py-3", message.role === "user" ? "bg-primary text-primary-foreground rounded-br-md" : "bg-card border border-border shadow-soft rounded-bl-md")}>
-              <p className="text-sm leading-relaxed">{message.content}</p>
+        {messages.map(message => {
+          const fontClass = chatFont === "playfair" ? "font-display" : chatFont === "system" ? "font-system" : "font-sans";
+          const getUserBubbleClasses = () => {
+            switch (chatColor) {
+              case "mint": return "bg-calm-mint text-foreground";
+              case "peach": return "bg-calm-peach text-foreground";
+              case "blue": return "bg-calm-blue text-foreground";
+              default: return "bg-primary text-primary-foreground";
+            }
+          };
+          const getAiBubbleClasses = () => {
+            switch (chatColor) {
+              case "mint": return "bg-calm-mint-light text-foreground border-calm-mint/30";
+              case "peach": return "bg-calm-peach-light text-foreground border-calm-peach/30";
+              case "blue": return "bg-calm-blue-light text-foreground border-calm-blue/30";
+              default: return "bg-card text-foreground border-border";
+            }
+          };
+          
+          return (
+            <div key={message.id} className={cn("flex animate-fade-in-up", message.role === "user" ? "justify-end" : "justify-start")}>
+              <div className={cn(
+                "max-w-[85%] rounded-2xl px-4 py-3",
+                message.role === "user" 
+                  ? `${getUserBubbleClasses()} rounded-br-md` 
+                  : `${getAiBubbleClasses()} border shadow-soft rounded-bl-md`
+              )}>
+                <p className={cn("text-sm leading-relaxed", fontClass)}>{message.content}</p>
+              </div>
             </div>
-          </div>)}
+          );
+        })}
 
         {isLoading && messages[messages.length - 1]?.role !== "assistant" && <div className="flex justify-start animate-fade-in">
             <div className="bg-card border border-border shadow-soft rounded-2xl rounded-bl-md px-4 py-3">

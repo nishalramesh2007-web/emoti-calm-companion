@@ -1,12 +1,26 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { LogOut, Bell, Sun, Heart, Calendar, ChevronRight, Camera } from "lucide-react";
+import { LogOut, Bell, Sun, Heart, Calendar, ChevronRight, Camera, MessageCircle, Type, Palette } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import BottomNav from "@/components/BottomNav";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+
+const fontOptions = [
+  { value: "quicksand", label: "Quicksand", fontClass: "font-sans" },
+  { value: "playfair", label: "Playfair Display", fontClass: "font-display" },
+  { value: "system", label: "System Default", fontClass: "font-system" },
+];
+
+const colorOptions = [
+  { value: "lavender", label: "Lavender", userBg: "bg-primary", userText: "text-primary-foreground", aiBg: "bg-card", aiText: "text-foreground" },
+  { value: "mint", label: "Mint", userBg: "bg-calm-mint", userText: "text-foreground", aiBg: "bg-calm-mint-light", aiText: "text-foreground" },
+  { value: "peach", label: "Peach", userBg: "bg-calm-peach", userText: "text-foreground", aiBg: "bg-calm-peach-light", aiText: "text-foreground" },
+  { value: "blue", label: "Ocean", userBg: "bg-calm-blue", userText: "text-foreground", aiBg: "bg-calm-blue-light", aiText: "text-foreground" },
+];
 
 const avatarOptions = [
   { emoji: "🌸", bg: "from-calm-lavender to-calm-mint" },
@@ -39,6 +53,8 @@ const ProfilePage = () => {
   });
   const [stats, setStats] = useState({ checkIns: 0, calmMoments: 0 });
   const [userId, setUserId] = useState<string | null>(null);
+  const [chatFont, setChatFont] = useState(() => localStorage.getItem("emoticam_chat_font") || "quicksand");
+  const [chatColor, setChatColor] = useState(() => localStorage.getItem("emoticam_chat_color") || "lavender");
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -273,6 +289,72 @@ const ProfilePage = () => {
               </div>
             </div>
             <Switch checked={lightMode} onCheckedChange={setLightMode} />
+          </div>
+        </div>
+
+        {/* Chatbot Settings */}
+        <h2 className="font-display text-lg font-bold text-foreground px-2 mt-6">Chatbot Settings</h2>
+
+        <div className="bg-card rounded-2xl shadow-soft border border-border overflow-hidden">
+          {/* Chat Font */}
+          <div className="flex items-center justify-between p-4 border-b border-border">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-calm-lavender-light flex items-center justify-center">
+                <Type className="w-5 h-5 text-primary" />
+              </div>
+              <div>
+                <p className="font-medium text-foreground">Chat Font</p>
+                <p className="text-sm text-muted-foreground">Message text style</p>
+              </div>
+            </div>
+            <Select value={chatFont} onValueChange={(value) => {
+              setChatFont(value);
+              localStorage.setItem("emoticam_chat_font", value);
+              toast({ title: "Font updated!", description: "Your chat font has been changed" });
+            }}>
+              <SelectTrigger className="w-[140px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {fontOptions.map((font) => (
+                  <SelectItem key={font.value} value={font.value}>
+                    <span className={font.fontClass}>{font.label}</span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Chat Color */}
+          <div className="flex items-center justify-between p-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-calm-peach-light flex items-center justify-center">
+                <Palette className="w-5 h-5 text-calm-peach" />
+              </div>
+              <div>
+                <p className="font-medium text-foreground">Chat Color</p>
+                <p className="text-sm text-muted-foreground">Message bubble theme</p>
+              </div>
+            </div>
+            <Select value={chatColor} onValueChange={(value) => {
+              setChatColor(value);
+              localStorage.setItem("emoticam_chat_color", value);
+              toast({ title: "Color updated!", description: "Your chat theme has been changed" });
+            }}>
+              <SelectTrigger className="w-[140px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {colorOptions.map((color) => (
+                  <SelectItem key={color.value} value={color.value}>
+                    <div className="flex items-center gap-2">
+                      <div className={`w-4 h-4 rounded-full ${color.userBg}`} />
+                      <span>{color.label}</span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
 

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { LogOut, Bell, Sun, Heart, Calendar, ChevronRight, Camera, Type, Palette, Sparkles } from "lucide-react";
+import { LogOut, Bell, Sun, Heart, Calendar, ChevronRight, Camera, Type, Palette, Sparkles, ImageIcon, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -30,6 +30,20 @@ const personalityOptions = [
   { value: "nurturing", label: "Nurturing", emoji: "🌿", description: "Warm and caring" },
 ];
 
+const backgroundOptions = [
+  { value: "none", label: "None", type: "none" },
+  { value: "gradient-lavender", label: "Lavender Dream", type: "gradient", gradient: "linear-gradient(135deg, hsl(260 60% 92%), hsl(260 55% 85%))" },
+  { value: "gradient-mint", label: "Mint Fresh", type: "gradient", gradient: "linear-gradient(135deg, hsl(160 50% 92%), hsl(160 40% 85%))" },
+  { value: "gradient-peach", label: "Peach Sunset", type: "gradient", gradient: "linear-gradient(135deg, hsl(30 70% 95%), hsl(30 60% 85%))" },
+  { value: "gradient-ocean", label: "Ocean Calm", type: "gradient", gradient: "linear-gradient(135deg, hsl(200 60% 92%), hsl(200 50% 85%))" },
+  { value: "gradient-aurora", label: "Aurora", type: "gradient", gradient: "linear-gradient(135deg, hsl(260 55% 75%), hsl(200 50% 75%), hsl(160 40% 75%))" },
+  { value: "gradient-dusk", label: "Dusk", type: "gradient", gradient: "linear-gradient(135deg, hsl(260 40% 70%), hsl(30 50% 80%))" },
+  { value: "image-clouds", label: "Soft Clouds", type: "image", url: "https://images.unsplash.com/photo-1534088568595-a066f410bcda?w=800&q=80" },
+  { value: "image-nature", label: "Nature", type: "image", url: "https://images.unsplash.com/photo-1518173946687-a4c036bc3bed?w=800&q=80" },
+  { value: "image-stars", label: "Night Sky", type: "image", url: "https://images.unsplash.com/photo-1475274047050-1d0c0975c63e?w=800&q=80" },
+  { value: "custom", label: "Custom Image", type: "custom" },
+];
+
 const avatarOptions = [
   { emoji: "🌸", bg: "from-calm-lavender to-calm-mint" },
   { emoji: "🌿", bg: "from-calm-mint to-calm-blue" },
@@ -48,12 +62,14 @@ const avatarOptions = [
 const ProfilePage = () => {
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const bgFileInputRef = useRef<HTMLInputElement>(null);
   const [username, setUsername] = useState("Friend");
   const [notifications, setNotifications] = useState(true);
   const [lightMode, setLightMode] = useState(() => {
     return !document.documentElement.classList.contains("dark");
   });
   const [avatarDialogOpen, setAvatarDialogOpen] = useState(false);
+  const [bgDialogOpen, setBgDialogOpen] = useState(false);
   const [selectedAvatar, setSelectedAvatar] = useState<{ type: "emoji" | "image"; value: string; bg?: string }>({
     type: "emoji",
     value: "🌸",
@@ -64,6 +80,8 @@ const ProfilePage = () => {
   const [chatFont, setChatFont] = useState(() => localStorage.getItem("emoticam_chat_font") || "quicksand");
   const [chatColor, setChatColor] = useState(() => localStorage.getItem("emoticam_chat_color") || "lavender");
   const [chatPersonality, setChatPersonality] = useState(() => localStorage.getItem("emoticam_chat_personality") || "gentle");
+  const [chatBackground, setChatBackground] = useState(() => localStorage.getItem("emoticam_chat_background") || "none");
+  const [customBgImage, setCustomBgImage] = useState(() => localStorage.getItem("emoticam_chat_custom_bg") || "");
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -203,6 +221,45 @@ const ProfilePage = () => {
       };
       reader.readAsDataURL(file);
     }
+  };
+
+  const handleBgImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast({
+          title: "Image too large",
+          description: "Please choose an image under 5MB",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const imageData = reader.result as string;
+        setCustomBgImage(imageData);
+        setChatBackground("custom");
+        localStorage.setItem("emoticam_chat_custom_bg", imageData);
+        localStorage.setItem("emoticam_chat_background", "custom");
+        setBgDialogOpen(false);
+        toast({
+          title: "Background updated!",
+          description: "Your custom background looks great 🎨",
+        });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleBgSelect = (value: string) => {
+    setChatBackground(value);
+    localStorage.setItem("emoticam_chat_background", value);
+    setBgDialogOpen(false);
+    toast({
+      title: "Background updated!",
+      description: "Your chat background has been changed",
+    });
   };
 
   const statsDisplay = [
@@ -367,7 +424,7 @@ const ProfilePage = () => {
           </div>
 
           {/* AI Personality */}
-          <div className="flex items-center justify-between p-4">
+          <div className="flex items-center justify-between p-4 border-b border-border">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-calm-mint-light flex items-center justify-center">
                 <Sparkles className="w-5 h-5 text-calm-mint" />
@@ -396,6 +453,27 @@ const ProfilePage = () => {
                 ))}
               </SelectContent>
             </Select>
+          </div>
+
+          {/* Chat Background */}
+          <div className="flex items-center justify-between p-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-calm-blue-light flex items-center justify-center">
+                <ImageIcon className="w-5 h-5 text-calm-blue" />
+              </div>
+              <div>
+                <p className="font-medium text-foreground">Chat Background</p>
+                <p className="text-sm text-muted-foreground">Gradient or image</p>
+              </div>
+            </div>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => setBgDialogOpen(true)}
+              className="h-9"
+            >
+              {backgroundOptions.find(b => b.value === chatBackground)?.label || "Choose"}
+            </Button>
           </div>
         </div>
 
@@ -457,6 +535,102 @@ const ProfilePage = () => {
                     }`}
                   >
                     {avatar.emoji}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Background Selection Dialog */}
+      <Dialog open={bgDialogOpen} onOpenChange={setBgDialogOpen}>
+        <DialogContent className="max-w-md rounded-3xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="font-display text-xl">Chat Background</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            {/* Upload custom background */}
+            <button
+              onClick={() => bgFileInputRef.current?.click()}
+              className="w-full flex items-center gap-4 p-4 rounded-2xl bg-gradient-to-br from-calm-lavender-light to-calm-mint-light border border-primary/20 hover:shadow-card transition-all"
+            >
+              <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                <Upload className="w-6 h-6 text-primary" />
+              </div>
+              <div className="text-left">
+                <p className="font-semibold text-foreground">Upload Custom Image</p>
+                <p className="text-sm text-muted-foreground">Choose from your storage</p>
+              </div>
+            </button>
+            <input
+              ref={bgFileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleBgImageUpload}
+              className="hidden"
+            />
+
+            {/* Show custom background preview if set */}
+            {customBgImage && chatBackground === "custom" && (
+              <div className="relative rounded-2xl overflow-hidden border-2 border-primary">
+                <img 
+                  src={customBgImage} 
+                  alt="Custom background" 
+                  className="w-full h-24 object-cover"
+                />
+                <div className="absolute inset-0 bg-background/50 flex items-center justify-center">
+                  <span className="text-sm font-medium text-foreground bg-background/80 px-3 py-1 rounded-full">
+                    Current Custom Background
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* Gradient options */}
+            <div>
+              <p className="text-sm font-medium text-muted-foreground mb-3">Gradients</p>
+              <div className="grid grid-cols-3 gap-3">
+                {backgroundOptions.filter(b => b.type === "none" || b.type === "gradient").map((bg) => (
+                  <button
+                    key={bg.value}
+                    onClick={() => handleBgSelect(bg.value)}
+                    className={`h-20 rounded-2xl flex items-center justify-center text-xs font-medium shadow-soft hover:scale-105 transition-transform ${
+                      chatBackground === bg.value ? "ring-2 ring-primary ring-offset-2" : ""
+                    }`}
+                    style={{ 
+                      background: bg.type === "gradient" ? bg.gradient : "hsl(var(--muted))"
+                    }}
+                  >
+                    <span className="bg-background/80 px-2 py-1 rounded-full text-foreground">
+                      {bg.label}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Image options */}
+            <div>
+              <p className="text-sm font-medium text-muted-foreground mb-3">Images</p>
+              <div className="grid grid-cols-3 gap-3">
+                {backgroundOptions.filter(b => b.type === "image").map((bg) => (
+                  <button
+                    key={bg.value}
+                    onClick={() => handleBgSelect(bg.value)}
+                    className={`h-20 rounded-2xl overflow-hidden flex items-center justify-center text-xs font-medium shadow-soft hover:scale-105 transition-transform relative ${
+                      chatBackground === bg.value ? "ring-2 ring-primary ring-offset-2" : ""
+                    }`}
+                  >
+                    <img 
+                      src={bg.url} 
+                      alt={bg.label}
+                      className="absolute inset-0 w-full h-full object-cover"
+                    />
+                    <span className="relative bg-background/80 px-2 py-1 rounded-full text-foreground z-10">
+                      {bg.label}
+                    </span>
                   </button>
                 ))}
               </div>

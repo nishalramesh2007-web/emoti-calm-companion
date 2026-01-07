@@ -184,9 +184,7 @@ const ChatPage = () => {
       const welcomeMsg: Message = {
         id: "welcome",
         role: "assistant",
-        content: history && history.length > 0 
-          ? "Welcome back! I remember our previous conversations. How are you feeling today? 💜"
-          : "Hello, I'm here to listen and support you. How are you feeling today? Take your time — there's no rush here. 💜"
+        content: "Hello, I'm here to listen and support you. How are you feeling today? Take your time — there's no rush here. 💜"
       };
       setMessages([welcomeMsg]);
       setIsLoadingHistory(false);

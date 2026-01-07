@@ -34,6 +34,8 @@ const ChatPage = () => {
   const [chatFont, setChatFont] = useState(() => localStorage.getItem("emoticam_chat_font") || "quicksand");
   const [chatColor, setChatColor] = useState(() => localStorage.getItem("emoticam_chat_color") || "lavender");
   const [chatPersonality, setChatPersonality] = useState(() => localStorage.getItem("emoticam_chat_personality") || "gentle");
+  const [chatBackground, setChatBackground] = useState(() => localStorage.getItem("emoticam_chat_background") || "none");
+  const [customBgImage, setCustomBgImage] = useState(() => localStorage.getItem("emoticam_chat_custom_bg") || "");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
 
@@ -212,10 +214,43 @@ const ChatPage = () => {
       setChatFont(localStorage.getItem("emoticam_chat_font") || "quicksand");
       setChatColor(localStorage.getItem("emoticam_chat_color") || "lavender");
       setChatPersonality(localStorage.getItem("emoticam_chat_personality") || "gentle");
+      setChatBackground(localStorage.getItem("emoticam_chat_background") || "none");
+      setCustomBgImage(localStorage.getItem("emoticam_chat_custom_bg") || "");
     };
     window.addEventListener("storage", handleStorageChange);
     return () => window.removeEventListener("storage", handleStorageChange);
   }, []);
+
+  const getBackgroundStyle = (): React.CSSProperties => {
+    const bgOptions: Record<string, { type: string; gradient?: string; url?: string }> = {
+      "none": { type: "none" },
+      "gradient-lavender": { type: "gradient", gradient: "linear-gradient(135deg, hsl(260 60% 92%), hsl(260 55% 85%))" },
+      "gradient-mint": { type: "gradient", gradient: "linear-gradient(135deg, hsl(160 50% 92%), hsl(160 40% 85%))" },
+      "gradient-peach": { type: "gradient", gradient: "linear-gradient(135deg, hsl(30 70% 95%), hsl(30 60% 85%))" },
+      "gradient-ocean": { type: "gradient", gradient: "linear-gradient(135deg, hsl(200 60% 92%), hsl(200 50% 85%))" },
+      "gradient-aurora": { type: "gradient", gradient: "linear-gradient(135deg, hsl(260 55% 75%), hsl(200 50% 75%), hsl(160 40% 75%))" },
+      "gradient-dusk": { type: "gradient", gradient: "linear-gradient(135deg, hsl(260 40% 70%), hsl(30 50% 80%))" },
+      "image-clouds": { type: "image", url: "https://images.unsplash.com/photo-1534088568595-a066f410bcda?w=800&q=80" },
+      "image-nature": { type: "image", url: "https://images.unsplash.com/photo-1518173946687-a4c036bc3bed?w=800&q=80" },
+      "image-stars": { type: "image", url: "https://images.unsplash.com/photo-1475274047050-1d0c0975c63e?w=800&q=80" },
+      "custom": { type: "custom" },
+    };
+
+    const bg = bgOptions[chatBackground];
+    if (!bg || bg.type === "none") return {};
+    if (bg.type === "gradient") return { background: bg.gradient };
+    if (bg.type === "image" && bg.url) return { 
+      backgroundImage: `url(${bg.url})`,
+      backgroundSize: "cover",
+      backgroundPosition: "center",
+    };
+    if (bg.type === "custom" && customBgImage) return {
+      backgroundImage: `url(${customBgImage})`,
+      backgroundSize: "cover",
+      backgroundPosition: "center",
+    };
+    return {};
+  };
   const saveMessage = async (uid: string, role: "user" | "assistant", content: string) => {
     const {
       error
@@ -497,7 +532,8 @@ const ChatPage = () => {
         </div>}
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-6 space-y-4">
+      <div className="flex-1 overflow-y-auto px-4 py-6 space-y-4 relative" style={getBackgroundStyle()}>
+        {chatBackground !== "none" && <div className="absolute inset-0 bg-background/30 pointer-events-none" />}
         {messages.map(message => {
         const fontClass = chatFont === "playfair" ? "font-display" : chatFont === "system" ? "font-system" : "font-sans";
         const getUserBubbleClasses = () => {
@@ -524,14 +560,14 @@ const ChatPage = () => {
               return "bg-card text-foreground border-border";
           }
         };
-        return <div key={message.id} className={cn("flex animate-fade-in-up", message.role === "user" ? "justify-end" : "justify-start")}>
+        return <div key={message.id} className={cn("flex animate-fade-in-up relative z-10", message.role === "user" ? "justify-end" : "justify-start")}>
               <div className={cn("max-w-[85%] rounded-2xl px-4 py-3", message.role === "user" ? `${getUserBubbleClasses()} rounded-br-md` : `${getAiBubbleClasses()} border shadow-soft rounded-bl-md`)}>
                 <p className={cn("text-sm leading-relaxed", fontClass)}>{message.content}</p>
               </div>
             </div>;
       })}
 
-        {isLoading && messages[messages.length - 1]?.role !== "assistant" && <div className="flex justify-start animate-fade-in">
+        {isLoading && messages[messages.length - 1]?.role !== "assistant" && <div className="flex justify-start animate-fade-in relative z-10">
             <div className="bg-card border border-border shadow-soft rounded-2xl rounded-bl-md px-4 py-3">
               <div className="flex gap-1.5">
                 <div className="w-2 h-2 rounded-full bg-primary/60 animate-pulse-soft" />
@@ -541,7 +577,7 @@ const ChatPage = () => {
             </div>
           </div>}
 
-        <div ref={messagesEndRef} />
+        <div ref={messagesEndRef} className="relative z-10" />
       </div>
 
       {/* Input */}

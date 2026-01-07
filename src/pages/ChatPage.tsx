@@ -139,7 +139,9 @@ const ChatPage = () => {
     }
   }, [isListening, toast]);
 
-  // Get user and load conversation history
+  const [conversationHistory, setConversationHistory] = useState<Message[]>([]);
+
+  // Get user and load conversation history (for AI memory, not display)
   useEffect(() => {
     const loadHistory = async () => {
       const {
@@ -158,7 +160,7 @@ const ChatPage = () => {
       }
       setUserId(user.id);
 
-      // Load previous messages
+      // Load previous messages for AI context (not displayed)
       const {
         data: history,
         error
@@ -167,37 +169,26 @@ const ChatPage = () => {
       });
       if (error) {
         console.error("Error loading chat history:", error);
-        toast({
-          title: "Error",
-          description: "Failed to load conversation history",
-          variant: "destructive"
-        });
       }
+      
+      // Store full history for AI memory
       if (history && history.length > 0) {
-        setMessages(history.map(msg => ({
+        setConversationHistory(history.map(msg => ({
           id: msg.id,
           role: msg.role as "user" | "assistant",
           content: msg.content
         })));
-      } else if (location.state?.initialMessage) {
-        const initialMsg: Message = {
-          id: "initial",
-          role: "assistant",
-          content: location.state.initialMessage
-        };
-        setMessages([initialMsg]);
-        // Save initial message
-        await saveMessage(user.id, "assistant", location.state.initialMessage);
-      } else {
-        const welcomeMsg: Message = {
-          id: "welcome",
-          role: "assistant",
-          content: "Hello, I'm here to listen and support you. How are you feeling today? Take your time — there's no rush here. 💜"
-        };
-        setMessages([welcomeMsg]);
-        // Save welcome message
-        await saveMessage(user.id, "assistant", welcomeMsg.content);
       }
+
+      // Always start with fresh UI - show welcome message
+      const welcomeMsg: Message = {
+        id: "welcome",
+        role: "assistant",
+        content: history && history.length > 0 
+          ? "Welcome back! I remember our previous conversations. How are you feeling today? 💜"
+          : "Hello, I'm here to listen and support you. How are you feeling today? Take your time — there's no rush here. 💜"
+      };
+      setMessages([welcomeMsg]);
       setIsLoadingHistory(false);
     };
     loadHistory();
@@ -346,6 +337,12 @@ const ChatPage = () => {
     }
     let assistantContent = "";
     try {
+      // Combine stored history with current session for AI context
+      const allMessages = [
+        ...conversationHistory,
+        ...updatedMessages.filter(m => m.id !== "welcome") // Exclude welcome messages
+      ];
+      
       const response = await fetch(CHAT_URL, {
         method: "POST",
         headers: {
@@ -353,7 +350,7 @@ const ChatPage = () => {
           Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`
         },
         body: JSON.stringify({
-          messages: updatedMessages.map(m => ({
+          messages: allMessages.map(m => ({
             role: m.role,
             content: m.content
           })),

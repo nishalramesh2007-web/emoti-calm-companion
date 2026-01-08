@@ -1,13 +1,15 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { LogOut, Bell, Sun, Heart, Calendar, ChevronRight, Camera, Type, Palette, Sparkles, ImageIcon, Upload } from "lucide-react";
+import { LogOut, Bell, Sun, Heart, Calendar, ChevronRight, Camera, Type, Palette, Sparkles, ImageIcon, Upload, MessageCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import BottomNav from "@/components/BottomNav";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { format } from "date-fns";
 
 const fontOptions = [
   { value: "quicksand", label: "Quicksand", fontClass: "font-sans" },
@@ -70,6 +72,9 @@ const ProfilePage = () => {
   });
   const [avatarDialogOpen, setAvatarDialogOpen] = useState(false);
   const [bgDialogOpen, setBgDialogOpen] = useState(false);
+  const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
+  const [chatHistory, setChatHistory] = useState<{ id: string; role: string; content: string; created_at: string }[]>([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [selectedAvatar, setSelectedAvatar] = useState<{ type: "emoji" | "image"; value: string; bg?: string }>({
     type: "emoji",
     value: "🌸",
@@ -261,6 +266,48 @@ const ProfilePage = () => {
       description: "Your chat background has been changed",
     });
   };
+
+  const loadChatHistory = async () => {
+    if (!userId) return;
+    
+    setIsLoadingHistory(true);
+    const { data, error } = await supabase
+      .from("chat_messages")
+      .select("*")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false });
+    
+    if (error) {
+      toast({
+        title: "Error loading history",
+        description: "Could not load your chat history",
+        variant: "destructive",
+      });
+    } else {
+      setChatHistory(data || []);
+    }
+    setIsLoadingHistory(false);
+  };
+
+  const handleOpenHistory = () => {
+    setHistoryDialogOpen(true);
+    loadChatHistory();
+  };
+
+  // Group chat history by date
+  const groupedHistory = chatHistory.reduce((groups, message) => {
+    const date = format(new Date(message.created_at), "MMMM d, yyyy");
+    if (!groups[date]) {
+      groups[date] = [];
+    }
+    groups[date].push(message);
+    return groups;
+  }, {} as Record<string, typeof chatHistory>);
+
+  // Sort dates in descending order
+  const sortedDates = Object.keys(groupedHistory).sort((a, b) => 
+    new Date(b).getTime() - new Date(a).getTime()
+  );
 
   const statsDisplay = [
     { label: "Check-ins", value: stats.checkIns.toString(), icon: Calendar },
@@ -477,6 +524,27 @@ const ProfilePage = () => {
           </div>
         </div>
 
+        {/* Chat History */}
+        <h2 className="font-display text-lg font-bold text-foreground px-2 mt-6">Chat History</h2>
+
+        <div className="bg-card rounded-2xl shadow-soft border border-border overflow-hidden">
+          <button
+            onClick={handleOpenHistory}
+            className="w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-calm-lavender-light flex items-center justify-center">
+                <MessageCircle className="w-5 h-5 text-primary" />
+              </div>
+              <div className="text-left">
+                <p className="font-medium text-foreground">View Past Conversations</p>
+                <p className="text-sm text-muted-foreground">Browse your chat history</p>
+              </div>
+            </div>
+            <ChevronRight className="w-5 h-5 text-muted-foreground" />
+          </button>
+        </div>
+
         {/* Logout */}
         <Button
           variant="outline"
@@ -636,6 +704,64 @@ const ProfilePage = () => {
               </div>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Chat History Dialog */}
+      <Dialog open={historyDialogOpen} onOpenChange={setHistoryDialogOpen}>
+        <DialogContent className="max-w-lg rounded-3xl max-h-[85vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="font-display text-xl">Chat History</DialogTitle>
+          </DialogHeader>
+
+          {isLoadingHistory ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            </div>
+          ) : chatHistory.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <MessageCircle className="w-12 h-12 text-muted-foreground mb-3" />
+              <p className="text-muted-foreground">No chat history yet</p>
+              <p className="text-sm text-muted-foreground">Start a conversation to see your history here</p>
+            </div>
+          ) : (
+            <ScrollArea className="flex-1 -mx-6 px-6">
+              <div className="space-y-6 pb-4">
+                {sortedDates.map((date) => (
+                  <div key={date}>
+                    <div className="sticky top-0 bg-background/95 backdrop-blur-sm py-2 mb-3">
+                      <p className="text-sm font-semibold text-muted-foreground">{date}</p>
+                    </div>
+                    <div className="space-y-3">
+                      {groupedHistory[date].sort((a, b) => 
+                        new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+                      ).map((message) => (
+                        <div
+                          key={message.id}
+                          className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
+                        >
+                          <div
+                            className={`max-w-[85%] rounded-2xl px-4 py-3 ${
+                              message.role === "user"
+                                ? "bg-primary text-primary-foreground"
+                                : "bg-muted text-foreground"
+                            }`}
+                          >
+                            <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                            <p className={`text-xs mt-1 ${
+                              message.role === "user" ? "text-primary-foreground/70" : "text-muted-foreground"
+                            }`}>
+                              {format(new Date(message.created_at), "h:mm a")}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </ScrollArea>
+          )}
         </DialogContent>
       </Dialog>
 

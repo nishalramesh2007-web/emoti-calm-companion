@@ -180,11 +180,24 @@ const ChatPage = () => {
         })));
       }
 
-      // Always start with fresh UI - show welcome message
+      // Random welcome messages for variety
+      const welcomeMessages = [
+        "Hello, I'm here to listen and support you. How are you feeling today? Take your time — there's no rush here. 💜",
+        "Hi there! I'm glad you're here. What's on your mind today? 🌸",
+        "Welcome! This is a safe space to share. How can I support you right now? 💫",
+        "Hey, it's good to see you. How are things going for you today? 🌿",
+        "Hello! I'm here whenever you're ready to talk. What would you like to share? 💜",
+        "Hi! Take a deep breath — you're in good company. How are you feeling? 🌻",
+        "Welcome back! I'm here to listen without judgment. What's happening in your world? 🦋",
+        "Hey there! Your feelings matter. What's on your heart today? 💕"
+      ];
+      
+      const randomWelcome = welcomeMessages[Math.floor(Math.random() * welcomeMessages.length)];
+      
       const welcomeMsg: Message = {
         id: "welcome",
         role: "assistant",
-        content: "Hello, I'm here to listen and support you. How are you feeling today? Take your time — there's no rush here. 💜"
+        content: randomWelcome
       };
       setMessages([welcomeMsg]);
       setIsLoadingHistory(false);

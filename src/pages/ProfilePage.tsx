@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { LogOut, Bell, Sun, Heart, Calendar, ChevronRight, Camera, Type, Palette, Sparkles, ImageIcon, Upload, MessageCircle, Loader2 } from "lucide-react";
+import { LogOut, Bell, Sun, Heart, Calendar, ChevronRight, Camera, Type, Palette, Sparkles, ImageIcon, Upload, MessageCircle, Loader2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import BottomNav from "@/components/BottomNav";
@@ -73,8 +74,10 @@ const ProfilePage = () => {
   const [avatarDialogOpen, setAvatarDialogOpen] = useState(false);
   const [bgDialogOpen, setBgDialogOpen] = useState(false);
   const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
+  const [clearAllDialogOpen, setClearAllDialogOpen] = useState(false);
   const [chatHistory, setChatHistory] = useState<{ id: string; role: string; content: string; created_at: string }[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [isDeletingMessage, setIsDeletingMessage] = useState<string | null>(null);
   const [selectedAvatar, setSelectedAvatar] = useState<{ type: "emoji" | "image"; value: string; bg?: string }>({
     type: "emoji",
     value: "🌸",
@@ -292,6 +295,53 @@ const ProfilePage = () => {
   const handleOpenHistory = () => {
     setHistoryDialogOpen(true);
     loadChatHistory();
+  };
+
+  const handleDeleteMessage = async (messageId: string) => {
+    setIsDeletingMessage(messageId);
+    const { error } = await supabase
+      .from("chat_messages")
+      .delete()
+      .eq("id", messageId);
+    
+    if (error) {
+      toast({
+        title: "Error deleting message",
+        description: "Could not delete the message",
+        variant: "destructive",
+      });
+    } else {
+      setChatHistory(prev => prev.filter(m => m.id !== messageId));
+      toast({
+        title: "Message deleted",
+        description: "The message has been removed",
+      });
+    }
+    setIsDeletingMessage(null);
+  };
+
+  const handleClearAllHistory = async () => {
+    if (!userId) return;
+    
+    const { error } = await supabase
+      .from("chat_messages")
+      .delete()
+      .eq("user_id", userId);
+    
+    if (error) {
+      toast({
+        title: "Error clearing history",
+        description: "Could not clear your chat history",
+        variant: "destructive",
+      });
+    } else {
+      setChatHistory([]);
+      setClearAllDialogOpen(false);
+      toast({
+        title: "History cleared",
+        description: "All your chat history has been deleted",
+      });
+    }
   };
 
   // Group chat history by date
@@ -711,7 +761,23 @@ const ProfilePage = () => {
       <Dialog open={historyDialogOpen} onOpenChange={setHistoryDialogOpen}>
         <DialogContent className="max-w-lg rounded-3xl max-h-[85vh] flex flex-col">
           <DialogHeader>
-            <DialogTitle className="font-display text-xl">Chat History</DialogTitle>
+            <div className="flex items-center justify-between">
+              <DialogTitle className="font-display text-xl">Chat History</DialogTitle>
+              {chatHistory.length > 0 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                  onClick={() => setClearAllDialogOpen(true)}
+                >
+                  <Trash2 className="w-4 h-4 mr-1" />
+                  Clear All
+                </Button>
+              )}
+            </div>
+            <DialogDescription className="sr-only">
+              View and manage your past chat conversations
+            </DialogDescription>
           </DialogHeader>
 
           {isLoadingHistory ? (
@@ -738,21 +804,39 @@ const ProfilePage = () => {
                       ).map((message) => (
                         <div
                           key={message.id}
-                          className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
+                          className={`flex ${message.role === "user" ? "justify-end" : "justify-start"} group`}
                         >
-                          <div
-                            className={`max-w-[85%] rounded-2xl px-4 py-3 ${
-                              message.role === "user"
-                                ? "bg-primary text-primary-foreground"
-                                : "bg-muted text-foreground"
-                            }`}
-                          >
-                            <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                            <p className={`text-xs mt-1 ${
-                              message.role === "user" ? "text-primary-foreground/70" : "text-muted-foreground"
-                            }`}>
-                              {format(new Date(message.created_at), "h:mm a")}
-                            </p>
+                          <div className="relative">
+                            <div
+                              className={`max-w-[85%] rounded-2xl px-4 py-3 ${
+                                message.role === "user"
+                                  ? "bg-primary text-primary-foreground"
+                                  : "bg-muted text-foreground"
+                              }`}
+                            >
+                              <p className="text-sm whitespace-pre-wrap pr-6">{message.content}</p>
+                              <p className={`text-xs mt-1 ${
+                                message.role === "user" ? "text-primary-foreground/70" : "text-muted-foreground"
+                              }`}>
+                                {format(new Date(message.created_at), "h:mm a")}
+                              </p>
+                            </div>
+                            <button
+                              onClick={() => handleDeleteMessage(message.id)}
+                              disabled={isDeletingMessage === message.id}
+                              className={`absolute top-2 right-2 p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity ${
+                                message.role === "user" 
+                                  ? "hover:bg-primary-foreground/20 text-primary-foreground/70"
+                                  : "hover:bg-foreground/10 text-muted-foreground"
+                              }`}
+                              title="Delete message"
+                            >
+                              {isDeletingMessage === message.id ? (
+                                <Loader2 className="w-3 h-3 animate-spin" />
+                              ) : (
+                                <Trash2 className="w-3 h-3" />
+                              )}
+                            </button>
                           </div>
                         </div>
                       ))}
@@ -764,6 +848,27 @@ const ProfilePage = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Clear All Confirmation Dialog */}
+      <AlertDialog open={clearAllDialogOpen} onOpenChange={setClearAllDialogOpen}>
+        <AlertDialogContent className="rounded-3xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Clear all chat history?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete all your chat messages. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleClearAllHistory}
+              className="rounded-xl bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete All
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <BottomNav />
     </div>

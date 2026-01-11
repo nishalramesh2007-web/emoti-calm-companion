@@ -1,7 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Play, Pause, RotateCcw, ChevronRight, ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useActivityTracker } from "@/hooks/useActivityTracker";
 
 interface YogaPose {
   name: string;
@@ -17,11 +18,13 @@ interface YogaExerciseProps {
 }
 
 const YogaExercise = ({ pose }: YogaExerciseProps) => {
+  const { incrementCalmMoment } = useActivityTracker();
   const [isPracticing, setIsPracticing] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const [timeLeft, setTimeLeft] = useState(20);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
+  const hasTrackedRef = useRef(false);
 
   // Parse duration to get seconds per step (e.g., "1-3 min" -> use middle value)
   const getDurationSeconds = () => {
@@ -57,6 +60,11 @@ const YogaExercise = ({ pose }: YogaExerciseProps) => {
             } else {
               setIsComplete(true);
               setIsPlaying(false);
+              // Track calm moment on completion
+              if (!hasTrackedRef.current) {
+                hasTrackedRef.current = true;
+                incrementCalmMoment();
+              }
               return 0;
             }
           }
@@ -82,6 +90,7 @@ const YogaExercise = ({ pose }: YogaExerciseProps) => {
     setTimeLeft(getDurationSeconds());
     setIsPlaying(false);
     setIsComplete(false);
+    hasTrackedRef.current = false;
   };
 
   const goToStep = (step: number) => {

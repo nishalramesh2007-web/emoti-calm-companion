@@ -1,8 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { ArrowLeft, ChevronRight, Heart, RotateCcw } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import BottomNav from "@/components/BottomNav";
+import { useActivityTracker } from "@/hooks/useActivityTracker";
 
 // Extended phrases pool for each recipient type
 const phrasePools = {
@@ -97,11 +98,13 @@ const getRandomPhrases = (pool: string[], count: number, usedPhrases: Set<string
 
 const LovingKindnessPage = () => {
   const navigate = useNavigate();
+  const { incrementCalmMoment } = useActivityTracker();
   const [currentRecipient, setCurrentRecipient] = useState(0);
   const [currentPhrase, setCurrentPhrase] = useState(0);
   const [isComplete, setIsComplete] = useState(false);
   const [usedPhrases, setUsedPhrases] = useState<Set<string>>(new Set());
   const [recipients, setRecipients] = useState<Array<typeof recipientTemplates[0] & { phrases: string[] }>>([]);
+  const hasTrackedRef = useRef(false);
 
   // Initialize with random phrases on mount
   useEffect(() => {
@@ -126,6 +129,11 @@ const LovingKindnessPage = () => {
       setCurrentPhrase(0);
     } else {
       setIsComplete(true);
+      // Track calm moment on completion
+      if (!hasTrackedRef.current) {
+        hasTrackedRef.current = true;
+        incrementCalmMoment();
+      }
     }
   };
 
@@ -143,6 +151,7 @@ const LovingKindnessPage = () => {
     setCurrentRecipient(0);
     setCurrentPhrase(0);
     setIsComplete(false);
+    hasTrackedRef.current = false;
   };
 
   if (recipients.length === 0) {

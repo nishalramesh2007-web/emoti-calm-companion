@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import BottomNav from "@/components/BottomNav";
 import { supabase } from "@/integrations/supabase/client";
+import { useActivityTracker } from "@/hooks/useActivityTracker";
 
 interface JournalEntry {
   id: string;
@@ -18,6 +19,7 @@ interface JournalEntry {
 const GratitudeJournalPage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { incrementCalmMoment } = useActivityTracker();
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [isWriting, setIsWriting] = useState(false);
   const [journalName, setJournalName] = useState("");
@@ -113,6 +115,8 @@ const GratitudeJournalPage = () => {
       setJournalName("");
       setJournalContent("");
       setIsWriting(false);
+      // Track as calm moment
+      incrementCalmMoment();
     }
 
     setIsSaving(false);

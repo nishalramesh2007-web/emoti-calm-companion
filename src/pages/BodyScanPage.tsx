@@ -1,8 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { ArrowLeft, Play, Pause, RotateCcw } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import BottomNav from "@/components/BottomNav";
+import { useActivityTracker } from "@/hooks/useActivityTracker";
 
 const bodyParts = [
   { 
@@ -119,10 +120,12 @@ const bodyParts = [
 
 const BodyScanPage = () => {
   const navigate = useNavigate();
+  const { incrementCalmMoment } = useActivityTracker();
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentPart, setCurrentPart] = useState(0);
   const [timeLeft, setTimeLeft] = useState(bodyParts[0].duration);
   const [isComplete, setIsComplete] = useState(false);
+  const hasTrackedRef = useRef(false);
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -137,6 +140,11 @@ const BodyScanPage = () => {
             } else {
               setIsComplete(true);
               setIsPlaying(false);
+              // Track calm moment on completion
+              if (!hasTrackedRef.current) {
+                hasTrackedRef.current = true;
+                incrementCalmMoment();
+              }
               return 0;
             }
           }
@@ -153,6 +161,7 @@ const BodyScanPage = () => {
     setTimeLeft(bodyParts[0].duration);
     setIsPlaying(false);
     setIsComplete(false);
+    hasTrackedRef.current = false;
   };
 
   const progress = ((currentPart + 1) / bodyParts.length) * 100;

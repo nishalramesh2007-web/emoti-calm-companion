@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import MoodTrends from "@/components/MoodTrends";
+import { useActivityTracker } from "@/hooks/useActivityTracker";
 interface Message {
   id: string;
   role: "user" | "assistant";
@@ -23,6 +24,7 @@ const ChatPage = () => {
   const {
     toast
   } = useToast();
+  const { incrementCheckIn } = useActivityTracker();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -296,8 +298,9 @@ const ChatPage = () => {
       if (error) {
         console.error("Error saving mood entry:", error);
       } else {
-        // Refresh mood trends
+        // Refresh mood trends and increment check-in counter
         setMoodKey(k => k + 1);
+        incrementCheckIn();
       }
     } catch (error) {
       console.error("Mood analysis error:", error);

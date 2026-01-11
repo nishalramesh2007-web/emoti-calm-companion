@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { ArrowLeft, ChevronRight, RotateCcw } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import BottomNav from "@/components/BottomNav";
+import { useActivityTracker } from "@/hooks/useActivityTracker";
 
 const senses = [
   { 
@@ -50,15 +51,22 @@ const senses = [
 
 const FiveSensesPage = () => {
   const navigate = useNavigate();
+  const { incrementCalmMoment } = useActivityTracker();
   const [currentSense, setCurrentSense] = useState(0);
   const [responses, setResponses] = useState<string[]>(Array(5).fill(""));
   const [isComplete, setIsComplete] = useState(false);
+  const hasTrackedRef = useRef(false);
 
   const handleNext = () => {
     if (currentSense < senses.length - 1) {
       setCurrentSense(currentSense + 1);
     } else {
       setIsComplete(true);
+      // Track calm moment on completion
+      if (!hasTrackedRef.current) {
+        hasTrackedRef.current = true;
+        incrementCalmMoment();
+      }
     }
   };
 
@@ -72,6 +80,7 @@ const FiveSensesPage = () => {
     setCurrentSense(0);
     setResponses(Array(5).fill(""));
     setIsComplete(false);
+    hasTrackedRef.current = false;
   };
 
   const progress = ((currentSense + 1) / senses.length) * 100;

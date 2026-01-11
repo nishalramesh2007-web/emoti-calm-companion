@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Play, Pause, RotateCcw } from "lucide-react";
+import { useActivityTracker } from "@/hooks/useActivityTracker";
 
 interface BreathingExerciseProps {
   pattern: {
@@ -13,10 +14,12 @@ interface BreathingExerciseProps {
 }
 
 const BreathingExercise = ({ pattern }: BreathingExerciseProps) => {
+  const { incrementCalmMoment } = useActivityTracker();
   const [isActive, setIsActive] = useState(false);
   const [phase, setPhase] = useState<"inhale" | "hold" | "exhale" | "holdAfter">("inhale");
   const [countdown, setCountdown] = useState(pattern.inhale);
   const [cycles, setCycles] = useState(0);
+  const hasTrackedRef = useRef(false);
 
   useEffect(() => {
     if (!isActive) return;
@@ -37,11 +40,26 @@ const BreathingExercise = ({ pattern }: BreathingExerciseProps) => {
               return pattern.holdAfter;
             }
             setPhase("inhale");
-            setCycles((c) => c + 1);
+            setCycles((c) => {
+              const newCycles = c + 1;
+              // Track calm moment after completing 3 cycles
+              if (newCycles >= 3 && !hasTrackedRef.current) {
+                hasTrackedRef.current = true;
+                incrementCalmMoment();
+              }
+              return newCycles;
+            });
             return pattern.inhale;
           } else {
             setPhase("inhale");
-            setCycles((c) => c + 1);
+            setCycles((c) => {
+              const newCycles = c + 1;
+              if (newCycles >= 3 && !hasTrackedRef.current) {
+                hasTrackedRef.current = true;
+                incrementCalmMoment();
+              }
+              return newCycles;
+            });
             return pattern.inhale;
           }
         }
@@ -57,6 +75,7 @@ const BreathingExercise = ({ pattern }: BreathingExerciseProps) => {
     setPhase("inhale");
     setCountdown(pattern.inhale);
     setCycles(0);
+    hasTrackedRef.current = false;
   };
 
   const getPhaseLabel = () => {

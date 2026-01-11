@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { LogOut, Bell, Sun, Heart, Calendar, ChevronRight, Camera, Type, Palette, Sparkles, ImageIcon, Upload, MessageCircle, Loader2, Trash2 } from "lucide-react";
+import { LogOut, Bell, Sun, Heart, Calendar, ChevronRight, Camera, Type, Palette, Sparkles, ImageIcon, Upload, MessageCircle, Loader2, Trash2, Search, X } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
@@ -77,6 +78,7 @@ const ProfilePage = () => {
   const [chatHistory, setChatHistory] = useState<{ id: string; role: string; content: string; created_at: string }[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [isDeletingMessage, setIsDeletingMessage] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
   const [selectedAvatar, setSelectedAvatar] = useState<{ type: "emoji" | "image"; value: string; bg?: string }>({
     type: "emoji",
     value: "🌸",
@@ -293,6 +295,7 @@ const ProfilePage = () => {
 
   const handleOpenHistory = () => {
     setHistoryDialogOpen(true);
+    setSearchQuery("");
     loadChatHistory();
   };
 
@@ -343,15 +346,22 @@ const ProfilePage = () => {
     }
   };
 
+  // Filter chat history based on search query
+  const filteredHistory = searchQuery.trim()
+    ? chatHistory.filter(message =>
+        message.content.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : chatHistory;
+
   // Group chat history by date
-  const groupedHistory = chatHistory.reduce((groups, message) => {
+  const groupedHistory = filteredHistory.reduce((groups, message) => {
     const date = format(new Date(message.created_at), "MMMM d, yyyy");
     if (!groups[date]) {
       groups[date] = [];
     }
     groups[date].push(message);
     return groups;
-  }, {} as Record<string, typeof chatHistory>);
+  }, {} as Record<string, typeof filteredHistory>);
 
   // Sort dates in descending order
   const sortedDates = Object.keys(groupedHistory).sort((a, b) => 
@@ -779,6 +789,27 @@ const ProfilePage = () => {
             </DialogDescription>
           </DialogHeader>
 
+          {/* Search Input */}
+          {chatHistory.length > 0 && !isLoadingHistory && (
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="Search messages..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9 pr-9 rounded-xl"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+          )}
+
           {isLoadingHistory ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -788,6 +819,12 @@ const ProfilePage = () => {
               <MessageCircle className="w-12 h-12 text-muted-foreground mb-3" />
               <p className="text-muted-foreground">No chat history yet</p>
               <p className="text-sm text-muted-foreground">Start a conversation to see your history here</p>
+            </div>
+          ) : filteredHistory.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <Search className="w-12 h-12 text-muted-foreground mb-3" />
+              <p className="text-muted-foreground">No messages found</p>
+              <p className="text-sm text-muted-foreground">Try a different search term</p>
             </div>
           ) : (
             <ScrollArea className="flex-1 -mx-6 px-6">

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { LogOut, Bell, Sun, Heart, Calendar, ChevronRight, Camera, Type, Palette, Sparkles, ImageIcon, Upload, MessageCircle, Loader2, Trash2, Search, X } from "lucide-react";
+import { LogOut, Bell, Sun, Heart, Calendar, ChevronRight, Camera, Type, Palette, Sparkles, ImageIcon, Upload, MessageCircle, Loader2, Trash2, Search, X, Flame } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -11,7 +11,8 @@ import BottomNav from "@/components/BottomNav";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
-
+import { useBadges } from "@/hooks/useBadges";
+import { BadgesDisplay } from "@/components/BadgesDisplay";
 const fontOptions = [
   { value: "quicksand", label: "Quicksand", fontClass: "font-sans" },
   { value: "playfair", label: "Playfair Display", fontClass: "font-display" },
@@ -84,13 +85,15 @@ const ProfilePage = () => {
     value: "🌸",
     bg: "from-calm-lavender to-calm-mint",
   });
-  const [stats, setStats] = useState({ checkIns: 0, calmMoments: 0 });
+  const [stats, setStats] = useState({ checkIns: 0, calmMoments: 0, currentStreak: 0 });
   const [userId, setUserId] = useState<string | null>(null);
   const [chatFont, setChatFont] = useState(() => localStorage.getItem("emoticam_chat_font") || "quicksand");
   const [chatColor, setChatColor] = useState(() => localStorage.getItem("emoticam_chat_color") || "lavender");
   const [chatPersonality, setChatPersonality] = useState(() => localStorage.getItem("emoticam_chat_personality") || "gentle");
   const [chatBackground, setChatBackground] = useState(() => localStorage.getItem("emoticam_chat_background") || "none");
   const [customBgImage, setCustomBgImage] = useState(() => localStorage.getItem("emoticam_chat_custom_bg") || "");
+  
+  const { allBadges, earnedBadges, loading: badgesLoading, fetchBadges } = useBadges();
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -116,7 +119,11 @@ const ProfilePage = () => {
         setStats({
           checkIns: profile.check_ins ?? 0,
           calmMoments: profile.calm_moments ?? 0,
+          currentStreak: profile.current_streak ?? 0,
         });
+        
+        // Refresh badges when profile loads
+        fetchBadges();
         
         if (profile.avatar_type && profile.avatar_value) {
           const avatarBg = avatarOptions.find(a => a.emoji === profile.avatar_value)?.bg;
@@ -371,6 +378,7 @@ const ProfilePage = () => {
   const statsDisplay = [
     { label: "Check-ins", value: stats.checkIns.toString(), icon: Calendar },
     { label: "Calm Moments", value: stats.calmMoments.toString(), icon: Heart },
+    { label: "Day Streak", value: stats.currentStreak.toString(), icon: Flame },
   ];
 
   return (
@@ -415,17 +423,26 @@ const ProfilePage = () => {
           </div>
 
           {/* Stats */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-3 gap-3">
             {statsDisplay.map((stat) => (
               <div
                 key={stat.label}
-                className="bg-muted/50 rounded-2xl p-4 text-center"
+                className="bg-muted/50 rounded-2xl p-3 text-center"
               >
-                <stat.icon className="w-5 h-5 mx-auto mb-2 text-primary" />
-                <p className="font-display text-2xl font-bold text-foreground">{stat.value}</p>
-                <p className="text-sm text-muted-foreground">{stat.label}</p>
+                <stat.icon className="w-4 h-4 mx-auto mb-1 text-primary" />
+                <p className="font-display text-xl font-bold text-foreground">{stat.value}</p>
+                <p className="text-xs text-muted-foreground">{stat.label}</p>
               </div>
             ))}
+          </div>
+          
+          {/* Badges Section */}
+          <div className="mt-6 pt-6 border-t border-border">
+            <BadgesDisplay 
+              allBadges={allBadges} 
+              earnedBadges={earnedBadges} 
+              loading={badgesLoading} 
+            />
           </div>
         </div>
       </div>

@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      badges: {
+        Row: {
+          category: string
+          created_at: string
+          description: string
+          icon: string
+          id: string
+          name: string
+          requirement_type: string
+          requirement_value: number
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          description: string
+          icon: string
+          id?: string
+          name: string
+          requirement_type: string
+          requirement_value: number
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string
+          icon?: string
+          id?: string
+          name?: string
+          requirement_type?: string
+          requirement_value?: number
+        }
+        Relationships: []
+      }
       chat_messages: {
         Row: {
           content: string
@@ -96,8 +129,11 @@ export type Database = {
           calm_moments: number | null
           check_ins: number | null
           created_at: string
+          current_streak: number | null
           dark_mode: boolean | null
           id: string
+          last_activity_date: string | null
+          longest_streak: number | null
           notifications_enabled: boolean | null
           updated_at: string
           user_id: string
@@ -109,8 +145,11 @@ export type Database = {
           calm_moments?: number | null
           check_ins?: number | null
           created_at?: string
+          current_streak?: number | null
           dark_mode?: boolean | null
           id?: string
+          last_activity_date?: string | null
+          longest_streak?: number | null
           notifications_enabled?: boolean | null
           updated_at?: string
           user_id: string
@@ -122,14 +161,46 @@ export type Database = {
           calm_moments?: number | null
           check_ins?: number | null
           created_at?: string
+          current_streak?: number | null
           dark_mode?: boolean | null
           id?: string
+          last_activity_date?: string | null
+          longest_streak?: number | null
           notifications_enabled?: boolean | null
           updated_at?: string
           user_id?: string
           username?: string | null
         }
         Relationships: []
+      }
+      user_badges: {
+        Row: {
+          badge_id: string
+          earned_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          badge_id: string
+          earned_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          badge_id?: string
+          earned_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_badges_badge_id_fkey"
+            columns: ["badge_id"]
+            isOneToOne: false
+            referencedRelation: "badges"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

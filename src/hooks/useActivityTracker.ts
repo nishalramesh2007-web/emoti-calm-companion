@@ -1,6 +1,9 @@
 import { supabase } from "@/integrations/supabase/client";
+import { useBadges } from "./useBadges";
 
 export const useActivityTracker = () => {
+  const { checkAndAwardBadges, updateStreak } = useBadges();
+
   const incrementCheckIn = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
@@ -18,6 +21,10 @@ export const useActivityTracker = () => {
       .from("profiles")
       .update({ check_ins: currentCheckIns + 1 })
       .eq("user_id", user.id);
+
+    // Update streak and check for new badges
+    await updateStreak();
+    await checkAndAwardBadges();
   };
 
   const incrementCalmMoment = async () => {
@@ -37,6 +44,10 @@ export const useActivityTracker = () => {
       .from("profiles")
       .update({ calm_moments: currentCalmMoments + 1 })
       .eq("user_id", user.id);
+
+    // Update streak and check for new badges
+    await updateStreak();
+    await checkAndAwardBadges();
   };
 
   return { incrementCheckIn, incrementCalmMoment };

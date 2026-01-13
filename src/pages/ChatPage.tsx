@@ -1,6 +1,6 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useLocation } from "react-router-dom";
-import { Send, Trash2, BarChart3, Mic, MicOff } from "lucide-react";
+import { Send, Trash2, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import BottomNav from "@/components/BottomNav";
@@ -17,8 +17,7 @@ interface Message {
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
 const MOOD_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-mood`;
 
-// Check for SpeechRecognition support
-const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+
 const ChatPage = () => {
   const location = useLocation();
   const {
@@ -32,114 +31,14 @@ const ChatPage = () => {
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
   const [showMoodTrends, setShowMoodTrends] = useState(false);
   const [moodKey, setMoodKey] = useState(0);
-  const [isListening, setIsListening] = useState(false);
+  
   const [chatFont, setChatFont] = useState(() => localStorage.getItem("emoticam_chat_font") || "quicksand");
   const [chatColor, setChatColor] = useState(() => localStorage.getItem("emoticam_chat_color") || "lavender");
   const [chatPersonality, setChatPersonality] = useState(() => localStorage.getItem("emoticam_chat_personality") || "gentle");
   const [chatBackground, setChatBackground] = useState(() => localStorage.getItem("emoticam_chat_background") || "none");
   const [customBgImage, setCustomBgImage] = useState(() => localStorage.getItem("emoticam_chat_custom_bg") || "");
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const recognitionRef = useRef<any>(null);
 
-  // Initialize speech recognition
-  useEffect(() => {
-    if (SpeechRecognition) {
-      const recognition = new SpeechRecognition();
-      recognition.continuous = true;
-      recognition.interimResults = true;
-      recognition.lang = "en-US";
-      recognition.maxAlternatives = 1;
-      recognition.onresult = (event: any) => {
-        let finalTranscript = "";
-        let interimTranscript = "";
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          const transcript = event.results[i][0].transcript;
-          if (event.results[i].isFinal) {
-            finalTranscript += transcript;
-          } else {
-            interimTranscript += transcript;
-          }
-        }
-        setInput(prev => {
-          if (finalTranscript) {
-            return prev + finalTranscript;
-          }
-          return prev.split(" ").slice(0, -interimTranscript.split(" ").length).join(" ") + (prev ? " " : "") + interimTranscript;
-        });
-      };
-      recognition.onerror = (event: any) => {
-        console.error("Speech recognition error:", event.error);
-        // Don't stop listening on "no-speech" - just let it continue
-        if (event.error === "no-speech") {
-          // Auto-restart if still supposed to be listening
-          return;
-        }
-        setIsListening(false);
-        if (event.error === "not-allowed") {
-          toast({
-            title: "Microphone access denied",
-            description: "Please allow microphone access to use voice input",
-            variant: "destructive"
-          });
-        } else if (event.error === "network") {
-          toast({
-            title: "Network error",
-            description: "Please check your internet connection",
-            variant: "destructive"
-          });
-        }
-      };
-      recognition.onend = () => {
-        // Auto-restart if still supposed to be listening (browser auto-stops after silence)
-        if (recognitionRef.current?.shouldBeListening) {
-          try {
-            recognition.start();
-          } catch (e) {
-            setIsListening(false);
-            recognitionRef.current.shouldBeListening = false;
-          }
-        } else {
-          setIsListening(false);
-        }
-      };
-      recognitionRef.current = recognition;
-      recognitionRef.current.shouldBeListening = false;
-    }
-    return () => {
-      if (recognitionRef.current) {
-        recognitionRef.current.shouldBeListening = false;
-        recognitionRef.current.abort();
-      }
-    };
-  }, [toast]);
-  const toggleVoiceInput = useCallback(() => {
-    if (!SpeechRecognition) {
-      toast({
-        title: "Not supported",
-        description: "Voice input is not supported in your browser",
-        variant: "destructive"
-      });
-      return;
-    }
-    if (isListening) {
-      recognitionRef.current.shouldBeListening = false;
-      recognitionRef.current?.stop();
-      setIsListening(false);
-    } else {
-      try {
-        recognitionRef.current.shouldBeListening = true;
-        recognitionRef.current?.start();
-        setIsListening(true);
-        toast({
-          title: "Listening...",
-          description: "Speak now. Tap the mic button again to stop."
-        });
-      } catch (error) {
-        console.error("Failed to start recognition:", error);
-        recognitionRef.current.shouldBeListening = false;
-      }
-    }
-  }, [isListening, toast]);
 
   const [conversationHistory, setConversationHistory] = useState<Message[]>([]);
 
@@ -594,10 +493,7 @@ const ChatPage = () => {
       {/* Input */}
       <div className="fixed bottom-20 left-0 right-0 bg-card/95 backdrop-blur-lg border-t border-border z-10 py-[5px] my-0 mx-0 border-0 px-[16px] mb-[5px] shadow-sm">
         <div className="max-w-2xl mx-auto flex items-center gap-2">
-          <Button onClick={toggleVoiceInput} disabled={isLoading} size="icon" variant={isListening ? "default" : "outline"} className={cn("shrink-0 transition-all", isListening && "bg-destructive hover:bg-destructive/90 animate-pulse")} title={isListening ? "Stop listening" : "Voice input"}>
-            {isListening ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
-          </Button>
-          <Input value={input} onChange={e => setInput(e.target.value)} onKeyPress={handleKeyPress} placeholder={isListening ? "Listening..." : "Share what's on your mind..."} className={cn("flex-1 bg-muted/50", isListening && "border-primary")} disabled={isLoading} />
+          <Input value={input} onChange={e => setInput(e.target.value)} onKeyPress={handleKeyPress} placeholder="Share what's on your mind..." className="flex-1 bg-muted/50" disabled={isLoading} />
           <Button onClick={sendMessage} disabled={!input.trim() || isLoading} size="icon" className="shrink-0">
             <Send className="w-5 h-5" />
           </Button>

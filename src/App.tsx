@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -15,10 +15,24 @@ import FiveSensesPage from "./pages/FiveSensesPage";
 import LovingKindnessPage from "./pages/LovingKindnessPage";
 import ProfilePage from "./pages/ProfilePage";
 import NotFound from "./pages/NotFound";
+import { BadgeCelebration } from "./components/BadgeCelebration";
+import { Badge, setCelebrationCallback } from "./hooks/useBadges";
 
 const queryClient = new QueryClient();
 
 const App = () => {
+  const [celebratingBadge, setCelebratingBadge] = useState<Badge | null>(null);
+
+  const handleCelebration = useCallback((badge: Badge) => {
+    setCelebratingBadge(badge);
+  }, []);
+
+  useEffect(() => {
+    // Register the celebration callback globally
+    setCelebrationCallback(handleCelebration);
+    return () => setCelebrationCallback(null);
+  }, [handleCelebration]);
+
   useEffect(() => {
     const savedTheme = localStorage.getItem("emoticam_theme");
     if (savedTheme === "light") {
@@ -33,6 +47,10 @@ const App = () => {
       <TooltipProvider>
         <Toaster />
         <Sonner />
+        <BadgeCelebration 
+          badge={celebratingBadge} 
+          onComplete={() => setCelebratingBadge(null)} 
+        />
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<SplashScreen />} />

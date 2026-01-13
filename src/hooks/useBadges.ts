@@ -19,10 +19,18 @@ export interface UserBadge {
   badge: Badge;
 }
 
+// Global celebration callback
+let celebrationCallback: ((badge: Badge) => void) | null = null;
+
+export const setCelebrationCallback = (callback: ((badge: Badge) => void) | null) => {
+  celebrationCallback = callback;
+};
+
 export const useBadges = () => {
   const [allBadges, setAllBadges] = useState<Badge[]>([]);
   const [earnedBadges, setEarnedBadges] = useState<UserBadge[]>([]);
   const [loading, setLoading] = useState(true);
+  const [celebratingBadge, setCelebratingBadge] = useState<Badge | null>(null);
 
   const fetchBadges = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -103,13 +111,25 @@ export const useBadges = () => {
       }
     }
 
-    // Show toast for newly earned badges
+    // Show celebration for newly earned badges
     if (newlyEarned.length > 0) {
-      for (const badge of newlyEarned) {
-        toast({
-          title: `🎉 New Badge Unlocked!`,
-          description: `${badge.icon} ${badge.name} - ${badge.description}`,
-        });
+      // Trigger celebration animation for the first badge
+      if (celebrationCallback) {
+        celebrationCallback(newlyEarned[0]);
+      }
+      setCelebratingBadge(newlyEarned[0]);
+      
+      // Show toasts for additional badges if multiple earned at once
+      if (newlyEarned.length > 1) {
+        for (let i = 1; i < newlyEarned.length; i++) {
+          const badge = newlyEarned[i];
+          setTimeout(() => {
+            toast({
+              title: `🎉 New Badge Unlocked!`,
+              description: `${badge.icon} ${badge.name} - ${badge.description}`,
+            });
+          }, i * 500);
+        }
       }
       // Refresh badges list
       fetchBadges();
@@ -171,6 +191,8 @@ export const useBadges = () => {
     allBadges,
     earnedBadges,
     loading,
+    celebratingBadge,
+    setCelebratingBadge,
     fetchBadges,
     checkAndAwardBadges,
     updateStreak,

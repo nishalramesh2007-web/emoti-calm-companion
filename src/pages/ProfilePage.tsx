@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { LogOut, Bell, Sun, Heart, Calendar, ChevronRight, Camera, Type, Palette, Sparkles, ImageIcon, Upload, MessageCircle, Loader2, Trash2, Search, X, Flame } from "lucide-react";
+import { LogOut, Heart, Calendar, ChevronRight, Camera, Type, Palette, Sparkles, ImageIcon, Upload, MessageCircle, Loader2, Trash2, Search, X, Flame } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -68,10 +68,6 @@ const ProfilePage = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const bgFileInputRef = useRef<HTMLInputElement>(null);
   const [username, setUsername] = useState("Friend");
-  const [notifications, setNotifications] = useState(true);
-  const [lightMode, setLightMode] = useState(() => {
-    return !document.documentElement.classList.contains("dark");
-  });
   const [avatarDialogOpen, setAvatarDialogOpen] = useState(false);
   const [bgDialogOpen, setBgDialogOpen] = useState(false);
   const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
@@ -114,8 +110,6 @@ const ProfilePage = () => {
 
       if (profile) {
         setUsername(profile.username || "Friend");
-        setNotifications(profile.notifications_enabled ?? true);
-        setLightMode(!(profile.dark_mode ?? true));
         setStats({
           checkIns: profile.check_ins ?? 0,
           calmMoments: profile.calm_moments ?? 0,
@@ -147,34 +141,6 @@ const ProfilePage = () => {
     return () => subscription.unsubscribe();
   }, [navigate]);
 
-  useEffect(() => {
-    if (lightMode) {
-      document.documentElement.classList.remove("dark");
-      localStorage.setItem("emoticam_theme", "light");
-    } else {
-      document.documentElement.classList.add("dark");
-      localStorage.setItem("emoticam_theme", "dark");
-    }
-
-    // Update in database
-    if (userId) {
-      supabase
-        .from("profiles")
-        .update({ dark_mode: !lightMode })
-        .eq("user_id", userId)
-        .then();
-    }
-  }, [lightMode, userId]);
-
-  useEffect(() => {
-    if (userId) {
-      supabase
-        .from("profiles")
-        .update({ notifications_enabled: notifications })
-        .eq("user_id", userId)
-        .then();
-    }
-  }, [notifications, userId]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -449,40 +415,7 @@ const ProfilePage = () => {
 
       {/* Settings */}
       <div className="px-6 mt-6 space-y-4">
-        <h2 className="font-display text-lg font-bold text-foreground px-2">Settings</h2>
-
-        <div className="bg-card rounded-2xl shadow-soft border border-border overflow-hidden">
-          {/* Notifications */}
-          <div className="flex items-center justify-between p-4 border-b border-border">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-calm-lavender-light flex items-center justify-center">
-                <Bell className="w-5 h-5 text-primary" />
-              </div>
-              <div>
-                <p className="font-medium text-foreground">Notifications</p>
-                <p className="text-sm text-muted-foreground">Gentle reminders</p>
-              </div>
-            </div>
-            <Switch checked={notifications} onCheckedChange={setNotifications} />
-          </div>
-
-          {/* Dark mode */}
-          <div className="flex items-center justify-between p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-calm-blue-light flex items-center justify-center">
-                <Sun className="w-5 h-5 text-calm-blue" />
-              </div>
-              <div>
-                <p className="font-medium text-foreground">Light Mode</p>
-                <p className="text-sm text-muted-foreground">Brighter theme</p>
-              </div>
-            </div>
-            <Switch checked={lightMode} onCheckedChange={setLightMode} />
-          </div>
-        </div>
-
-        {/* Chatbot Settings */}
-        <h2 className="font-display text-lg font-bold text-foreground px-2 mt-6">Chatbot Settings</h2>
+        <h2 className="font-display text-lg font-bold text-foreground px-2">Chatbot Settings</h2>
 
         <div className="bg-card rounded-2xl shadow-soft border border-border overflow-hidden">
           {/* Chat Font */}

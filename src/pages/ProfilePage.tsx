@@ -45,6 +45,9 @@ const backgroundOptions = [
   { value: "image-clouds", label: "Soft Clouds", type: "image", url: "https://images.unsplash.com/photo-1534088568595-a066f410bcda?w=800&q=80" },
   { value: "image-zen", label: "Zen Garden", type: "image", url: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800&q=80" },
   { value: "image-stars", label: "Night Sky", type: "image", url: "https://images.unsplash.com/photo-1475274047050-1d0c0975c63e?w=800&q=80" },
+  { value: "image-beach", label: "Beach", type: "image", url: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&q=80" },
+  { value: "image-mountains", label: "Mountains", type: "image", url: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&q=80" },
+  { value: "image-forest", label: "Forest", type: "image", url: "https://images.unsplash.com/photo-1448375240586-882707db888b?w=800&q=80" },
   { value: "custom", label: "Custom Image", type: "custom" },
 ];
 

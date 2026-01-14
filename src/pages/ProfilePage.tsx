@@ -17,13 +17,21 @@ const fontOptions = [
   { value: "quicksand", label: "Quicksand", fontClass: "font-sans" },
   { value: "playfair", label: "Playfair Display", fontClass: "font-display" },
   { value: "system", label: "System Default", fontClass: "font-system" },
+  { value: "inter", label: "Inter", fontClass: "font-inter" },
+  { value: "georgia", label: "Georgia", fontClass: "font-georgia" },
+  { value: "comic", label: "Comic Sans", fontClass: "font-comic" },
 ];
 
 const colorOptions = [
-  { value: "lavender", label: "Lavender", userBg: "bg-primary", userText: "text-primary-foreground", aiBg: "bg-card", aiText: "text-foreground" },
-  { value: "mint", label: "Mint", userBg: "bg-calm-mint", userText: "text-foreground", aiBg: "bg-calm-mint-light", aiText: "text-foreground" },
-  { value: "peach", label: "Peach", userBg: "bg-calm-peach", userText: "text-foreground", aiBg: "bg-calm-peach-light", aiText: "text-foreground" },
-  { value: "blue", label: "Ocean", userBg: "bg-calm-blue", userText: "text-foreground", aiBg: "bg-calm-blue-light", aiText: "text-foreground" },
+  { value: "lavender", label: "Lavender", color: "#9b87f5" },
+  { value: "mint", label: "Mint", color: "#7dd3c0" },
+  { value: "peach", label: "Peach", color: "#f5c78a" },
+  { value: "blue", label: "Ocean", color: "#87c5f5" },
+  { value: "rose", label: "Rose", color: "#f587a3" },
+  { value: "sunset", label: "Sunset", color: "#f5a962" },
+  { value: "forest", label: "Forest", color: "#6bc77d" },
+  { value: "grape", label: "Grape", color: "#a855f7" },
+  { value: "custom", label: "Custom", color: "custom" },
 ];
 
 const personalityOptions = [
@@ -72,6 +80,8 @@ const ProfilePage = () => {
   const [username, setUsername] = useState("Friend");
   const [avatarDialogOpen, setAvatarDialogOpen] = useState(false);
   const [bgDialogOpen, setBgDialogOpen] = useState(false);
+  const [colorDialogOpen, setColorDialogOpen] = useState(false);
+  const [customColor, setCustomColor] = useState(() => localStorage.getItem("emoticam_custom_color") || "#9b87f5");
   const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
   const [clearAllDialogOpen, setClearAllDialogOpen] = useState(false);
   const [chatHistory, setChatHistory] = useState<{ id: string; role: string; content: string; created_at: string }[]>([]);
@@ -460,25 +470,22 @@ const ProfilePage = () => {
                 <p className="text-sm text-muted-foreground">Message bubble theme</p>
               </div>
             </div>
-            <Select value={chatColor} onValueChange={(value) => {
-              setChatColor(value);
-              localStorage.setItem("emoticam_chat_color", value);
-              toast({ title: "Color updated!", description: "Your chat theme has been changed" });
-            }}>
-              <SelectTrigger className="w-[140px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {colorOptions.map((color) => (
-                  <SelectItem key={color.value} value={color.value}>
-                    <div className="flex items-center gap-2">
-                      <div className={`w-4 h-4 rounded-full ${color.userBg}`} />
-                      <span>{color.label}</span>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => setColorDialogOpen(true)}
+              className="h-9 gap-2"
+            >
+              <div 
+                className="w-4 h-4 rounded-full border border-border" 
+                style={{ 
+                  backgroundColor: chatColor === "custom" 
+                    ? (localStorage.getItem("emoticam_custom_color") || "#9b87f5")
+                    : colorOptions.find(c => c.value === chatColor)?.color || "#9b87f5"
+                }} 
+              />
+              {colorOptions.find(c => c.value === chatColor)?.label || "Custom"}
+            </Button>
           </div>
 
           {/* AI Personality */}
@@ -712,6 +719,83 @@ const ProfilePage = () => {
                     </span>
                   </button>
                 ))}
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Color Selection Dialog */}
+      <Dialog open={colorDialogOpen} onOpenChange={setColorDialogOpen}>
+        <DialogContent className="max-w-md rounded-3xl">
+          <DialogHeader>
+            <DialogTitle className="font-display text-xl">Choose Chat Color</DialogTitle>
+            <DialogDescription>
+              Select a color theme for your message bubbles
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="grid grid-cols-3 gap-3">
+              {colorOptions.filter(c => c.value !== "custom").map((color) => (
+                <button
+                  key={color.value}
+                  onClick={() => {
+                    setChatColor(color.value);
+                    localStorage.setItem("emoticam_chat_color", color.value);
+                    setColorDialogOpen(false);
+                    toast({ title: "Color updated!", description: "Your chat theme has been changed" });
+                  }}
+                  className={`flex flex-col items-center gap-2 p-3 rounded-2xl border-2 transition-all hover:scale-105 ${
+                    chatColor === color.value ? "border-primary bg-primary/10" : "border-border hover:border-primary/50"
+                  }`}
+                >
+                  <div 
+                    className="w-10 h-10 rounded-full shadow-soft" 
+                    style={{ backgroundColor: color.color }}
+                  />
+                  <span className="text-sm font-medium">{color.label}</span>
+                </button>
+              ))}
+            </div>
+
+            {/* Custom Color Picker */}
+            <div className="border-t border-border pt-4">
+              <p className="text-sm font-medium text-muted-foreground mb-3">Custom Color</p>
+              <div className="flex items-center gap-3">
+                <div className="relative">
+                  <input
+                    type="color"
+                    value={customColor}
+                    onChange={(e) => {
+                      setCustomColor(e.target.value);
+                      localStorage.setItem("emoticam_custom_color", e.target.value);
+                    }}
+                    className="w-16 h-16 rounded-xl cursor-pointer border-2 border-border"
+                  />
+                </div>
+                <div className="flex-1">
+                  <Input
+                    value={customColor}
+                    onChange={(e) => {
+                      setCustomColor(e.target.value);
+                      localStorage.setItem("emoticam_custom_color", e.target.value);
+                    }}
+                    placeholder="#9b87f5"
+                    className="rounded-xl font-mono"
+                  />
+                </div>
+                <Button
+                  onClick={() => {
+                    setChatColor("custom");
+                    localStorage.setItem("emoticam_chat_color", "custom");
+                    setColorDialogOpen(false);
+                    toast({ title: "Custom color applied!", description: "Your chat theme has been personalized" });
+                  }}
+                  className="rounded-xl"
+                >
+                  Apply
+                </Button>
               </div>
             </div>
           </div>

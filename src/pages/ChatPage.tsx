@@ -447,33 +447,42 @@ const ChatPage = () => {
       <div className="flex-1 overflow-y-auto px-4 py-6 space-y-4 relative" style={getBackgroundStyle()}>
         {chatBackground !== "none" && <div className="absolute inset-0 bg-background/30 pointer-events-none" />}
         {messages.map(message => {
-        const fontClass = chatFont === "playfair" ? "font-display" : chatFont === "system" ? "font-system" : "font-sans";
-        const getUserBubbleClasses = () => {
-          switch (chatColor) {
-            case "mint":
-              return "bg-calm-mint text-foreground";
-            case "peach":
-              return "bg-calm-peach text-foreground";
-            case "blue":
-              return "bg-calm-blue text-foreground";
-            default:
-              return "bg-primary text-primary-foreground";
+        const fontClass = chatFont === "playfair" ? "font-display" : chatFont === "system" ? "font-system" : chatFont === "inter" ? "font-inter" : chatFont === "georgia" ? "font-georgia" : chatFont === "comic" ? "font-comic" : "font-sans";
+        
+        const getColorValue = () => {
+          const colorMap: Record<string, string> = {
+            lavender: "#9b87f5",
+            mint: "#7dd3c0",
+            peach: "#f5c78a",
+            blue: "#87c5f5",
+            rose: "#f587a3",
+            sunset: "#f5a962",
+            forest: "#6bc77d",
+            grape: "#a855f7",
+          };
+          if (chatColor === "custom") {
+            return localStorage.getItem("emoticam_custom_color") || "#9b87f5";
           }
+          return colorMap[chatColor] || "#9b87f5";
         };
-        const getAiBubbleClasses = () => {
-          switch (chatColor) {
-            case "mint":
-              return "bg-calm-mint-light text-foreground border-calm-mint/30";
-            case "peach":
-              return "bg-calm-peach-light text-foreground border-calm-peach/30";
-            case "blue":
-              return "bg-calm-blue-light text-foreground border-calm-blue/30";
-            default:
-              return "bg-card text-foreground border-border";
-          }
+        
+        const getUserBubbleStyle = () => {
+          const color = getColorValue();
+          return { backgroundColor: color };
+        };
+        
+        const getAiBubbleStyle = () => {
+          const color = getColorValue();
+          return { 
+            backgroundColor: `${color}20`,
+            borderColor: `${color}40`
+          };
         };
         return <div key={message.id} className={cn("flex animate-fade-in-up relative z-10", message.role === "user" ? "justify-end" : "justify-start")}>
-              <div className={cn("max-w-[85%] rounded-2xl px-4 py-3", message.role === "user" ? `${getUserBubbleClasses()} rounded-br-md` : `${getAiBubbleClasses()} border shadow-soft rounded-bl-md`)}>
+              <div 
+                className={cn("max-w-[85%] rounded-2xl px-4 py-3", message.role === "user" ? "text-white rounded-br-md" : "border shadow-soft rounded-bl-md")}
+                style={message.role === "user" ? getUserBubbleStyle() : getAiBubbleStyle()}
+              >
                 <p className={cn("text-sm leading-relaxed", fontClass)}>{message.content}</p>
               </div>
             </div>;

@@ -134,7 +134,6 @@ const ChatPage = () => {
       "gradient-aurora": { type: "gradient", gradient: "linear-gradient(135deg, hsl(260 55% 75%), hsl(200 50% 75%), hsl(160 40% 75%))" },
       "gradient-dusk": { type: "gradient", gradient: "linear-gradient(135deg, hsl(260 40% 70%), hsl(30 50% 80%))" },
       "image-clouds": { type: "image", url: "https://images.unsplash.com/photo-1534088568595-a066f410bcda?w=800&q=80" },
-      "image-zen": { type: "image", url: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800&q=80" },
       "image-stars": { type: "image", url: "https://images.unsplash.com/photo-1475274047050-1d0c0975c63e?w=800&q=80" },
       "image-beach": { type: "image", url: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&q=80" },
       "image-mountains": { type: "image", url: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&q=80" },

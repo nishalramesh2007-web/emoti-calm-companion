@@ -444,8 +444,9 @@ const ChatPage = () => {
         </div>}
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-6 space-y-4 relative" style={getBackgroundStyle()}>
-        {chatBackground !== "none" && <div className="absolute inset-0 bg-background/30 pointer-events-none" />}
+      <div className="flex-1 overflow-y-auto px-4 pt-4 pb-6 space-y-4 relative" style={getBackgroundStyle()}>
+        {chatBackground !== "none" && <div className="absolute inset-0 bg-background/30 pointer-events-none z-0" />}
+        <div className="relative z-10 space-y-4">
         {messages.map(message => {
         const fontClass = chatFont === "playfair" ? "font-display" : chatFont === "system" ? "font-system" : chatFont === "inter" ? "font-inter" : chatFont === "georgia" ? "font-georgia" : chatFont === "comic" ? "font-comic" : "font-sans";
         
@@ -498,7 +499,8 @@ const ChatPage = () => {
             </div>
           </div>}
 
-        <div ref={messagesEndRef} className="relative z-10" />
+          <div ref={messagesEndRef} />
+        </div>
       </div>
 
       {/* Input */}

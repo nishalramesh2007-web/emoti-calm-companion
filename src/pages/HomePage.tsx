@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import EmotionCard from "@/components/EmotionCard";
 import BottomNav from "@/components/BottomNav";
 import { supabase } from "@/integrations/supabase/client";
+import { useBadges } from "@/hooks/useBadges";
 
 const emotionResponses = {
   Happy: [
@@ -65,6 +66,7 @@ const getRandomResponse = (emotion: string): string => {
 
 const HomePage = () => {
   const navigate = useNavigate();
+  const { updateStreak, checkAndAwardBadges } = useBadges();
   const [username, setUsername] = useState("Friend");
   const [selectedEmotion, setSelectedEmotion] = useState<number | null>(null);
   const [currentResponse, setCurrentResponse] = useState<string>("");
@@ -88,6 +90,10 @@ const HomePage = () => {
       if (profile?.username) {
         setUsername(profile.username);
       }
+
+      // Update streak on login/page load - this ensures streak is tracked daily
+      await updateStreak();
+      await checkAndAwardBadges();
     };
 
     loadProfile();

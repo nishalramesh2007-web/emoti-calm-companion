@@ -5,7 +5,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const basePrompt = `You are EMOTICAM, a warm, versatile human companion who provides both emotional support AND helpful answers to any question.
+const basePrompt = `You are EMOTICALM, a warm, versatile human companion who provides both emotional support AND helpful answers to any question.
 
 Core capabilities:
 - Emotional support: Offer compassion, validation, and comfort for feelings and life challenges

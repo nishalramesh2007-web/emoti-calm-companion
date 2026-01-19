@@ -214,8 +214,8 @@ const AuthPage = () => {
 
         {/* Toggle */}
         <div className="mt-8 text-center animate-fade-in-up stagger-2">
-          <p className="text-muted-foreground">
-            {isLogin ? "New to EMOTICAM?" : "Already have an account?"}
+        <p className="text-muted-foreground">
+            {isLogin ? "New to EMOTICALM?" : "Already have an account?"}
           </p>
           <button
             type="button"

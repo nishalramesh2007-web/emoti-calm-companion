@@ -423,7 +423,7 @@ const ChatPage = () => {
               </svg>
             </div>
             <div>
-              <h1 className="font-display text-xl font-bold text-foreground">EMOTICALM</h1>
+              <h1 className="font-display text-xl font-bold text-foreground">LYLA</h1>
               <p className="text-sm text-muted-foreground">Your calm companion</p>
             </div>
           </div>

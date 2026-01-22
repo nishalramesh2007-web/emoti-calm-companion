@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { LogOut, Heart, Calendar, ChevronRight, Camera, Type, Palette, Sparkles, ImageIcon, Upload, MessageCircle, Loader2, Trash2, Search, X, Flame } from "lucide-react";
+import { LogOut, Heart, Calendar, ChevronRight, Camera, Type, Palette, Sparkles, ImageIcon, Upload, MessageCircle, Loader2, Trash2, Search, X, Flame, Lock } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -100,6 +100,11 @@ const ProfilePage = () => {
   const [chatPersonality, setChatPersonality] = useState(() => localStorage.getItem("emoticam_chat_personality") || "gentle");
   const [chatBackground, setChatBackground] = useState(() => localStorage.getItem("emoticam_chat_background") || "none");
   const [customBgImage, setCustomBgImage] = useState(() => localStorage.getItem("emoticam_chat_custom_bg") || "");
+  const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
   
   const { allBadges, earnedBadges, loading: badgesLoading, fetchBadges } = useBadges();
 
@@ -153,6 +158,65 @@ const ProfilePage = () => {
     return () => subscription.unsubscribe();
   }, [navigate]);
 
+
+  const handleChangePassword = async () => {
+    if (!newPassword || !confirmPassword) {
+      toast({
+        title: "Missing fields",
+        description: "Please fill in all password fields",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      toast({
+        title: "Password too short",
+        description: "Password must be at least 6 characters",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      toast({
+        title: "Passwords don't match",
+        description: "Please make sure your passwords match",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsChangingPassword(true);
+    
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      toast({
+        title: "Password updated!",
+        description: "Your password has been changed successfully 🔐",
+      });
+      
+      setPasswordDialogOpen(false);
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (error: any) {
+      toast({
+        title: "Error updating password",
+        description: error.message || "Please try again later",
+        variant: "destructive",
+      });
+    } finally {
+      setIsChangingPassword(false);
+    }
+  };
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -540,6 +604,27 @@ const ProfilePage = () => {
               {backgroundOptions.find(b => b.value === chatBackground)?.label || "Choose"}
             </Button>
           </div>
+        </div>
+
+        {/* Account Security */}
+        <h2 className="font-display text-lg font-bold text-foreground px-2 mt-6">Account Security</h2>
+
+        <div className="bg-card rounded-2xl shadow-soft border border-border overflow-hidden">
+          <button
+            onClick={() => setPasswordDialogOpen(true)}
+            className="w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-calm-peach-light flex items-center justify-center">
+                <Lock className="w-5 h-5 text-calm-peach" />
+              </div>
+              <div className="text-left">
+                <p className="font-medium text-foreground">Change Password</p>
+                <p className="text-sm text-muted-foreground">Update your account password</p>
+              </div>
+            </div>
+            <ChevronRight className="w-5 h-5 text-muted-foreground" />
+          </button>
         </div>
 
         {/* Chat History */}
@@ -939,6 +1024,72 @@ const ProfilePage = () => {
               className="rounded-xl flex-1 bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Delete All
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Password Change Dialog */}
+      <Dialog open={passwordDialogOpen} onOpenChange={(open) => {
+        setPasswordDialogOpen(open);
+        if (!open) {
+          setCurrentPassword("");
+          setNewPassword("");
+          setConfirmPassword("");
+        }
+      }}>
+        <DialogContent className="rounded-3xl max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="font-display text-xl">Change Password</DialogTitle>
+            <DialogDescription>
+              Enter your new password below. Make sure it's at least 6 characters.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">New Password</label>
+              <Input
+                type="password"
+                placeholder="Enter new password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                className="rounded-xl"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">Confirm Password</label>
+              <Input
+                type="password"
+                placeholder="Confirm new password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className="rounded-xl"
+              />
+            </div>
+          </div>
+          
+          <DialogFooter className="flex-row gap-2 sm:gap-0">
+            <Button 
+              variant="outline" 
+              className="rounded-xl flex-1" 
+              onClick={() => setPasswordDialogOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleChangePassword}
+              disabled={isChangingPassword}
+              className="rounded-xl flex-1"
+            >
+              {isChangingPassword ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Updating...
+                </>
+              ) : (
+                "Update Password"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -31,6 +31,8 @@ const ChatPage = () => {
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
   const [showMoodTrends, setShowMoodTrends] = useState(false);
   const [moodKey, setMoodKey] = useState(0);
+  const [lastMessageTime, setLastMessageTime] = useState(0);
+  const [messageCount, setMessageCount] = useState(0);
   
   const [chatFont, setChatFont] = useState(() => localStorage.getItem("emoticam_chat_font") || "quicksand");
   const [chatColor, setChatColor] = useState(() => localStorage.getItem("emoticam_chat_color") || "lavender");
@@ -234,6 +236,18 @@ const ChatPage = () => {
   };
   const sendMessage = async () => {
     if (!input.trim() || isLoading) return;
+    
+    // Throttle messages - 2 second cooldown
+    const now = Date.now();
+    if (now - lastMessageTime < 2000) {
+      toast({
+        title: "Please slow down",
+        description: "Wait a moment before sending another message."
+      });
+      return;
+    }
+    setLastMessageTime(now);
+    
     const userMessage: Message = {
       id: Date.now().toString(),
       role: "user",
@@ -247,16 +261,19 @@ const ChatPage = () => {
     // Save user message to database
     if (userId) {
       await saveMessage(userId, "user", userMessage.content);
-      // Analyze mood in background
-      analyzeMood(userMessage.content);
+      // Smart mood analysis: skip short messages, analyze every 3rd message
+      if (userMessage.content.length >= 10 && messageCount % 3 === 0) {
+        analyzeMood(userMessage.content);
+      }
+      setMessageCount(prev => prev + 1);
     }
     let assistantContent = "";
     try {
-      // Combine stored history with current session for AI context
+      // Combine stored history with current session for AI context (limit to last 20 messages)
       const allMessages = [
         ...conversationHistory,
         ...updatedMessages.filter(m => m.id !== "welcome") // Exclude welcome messages
-      ];
+      ].slice(-20); // Only send last 20 messages to reduce token usage
       
       const response = await fetch(CHAT_URL, {
         method: "POST",

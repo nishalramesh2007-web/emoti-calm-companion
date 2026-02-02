@@ -201,9 +201,8 @@ const ChatPage = () => {
       if (error) {
         console.error("Error saving mood entry:", error);
       } else {
-        // Refresh mood trends and increment check-in counter
+        // Refresh mood trends
         setMoodKey(k => k + 1);
-        incrementCheckIn();
       }
     } catch (error) {
       console.error("Mood analysis error:", error);
@@ -261,6 +260,10 @@ const ChatPage = () => {
     // Save user message to database
     if (userId) {
       await saveMessage(userId, "user", userMessage.content);
+      
+      // Increment check-in for every message sent
+      incrementCheckIn();
+      
       // Smart mood analysis: skip short messages, analyze every 3rd message
       if (userMessage.content.length >= 10 && messageCount % 3 === 0) {
         analyzeMood(userMessage.content);

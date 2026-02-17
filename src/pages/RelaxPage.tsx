@@ -76,6 +76,9 @@ const mindfulActivities = [
   { name: "Body Scan", icon: "🧘", description: "Notice sensations from head to toe", path: "/body-scan" },
   { name: "5 Senses Check", icon: "👁️", description: "Name 5 things you can see, 4 you can touch...", path: "/five-senses" },
   { name: "Loving Kindness", icon: "💝", description: "Send kind wishes to yourself and others", path: "/loving-kindness" },
+  { name: "Meditation", icon: "🧘‍♂️", description: "Guided meditation for calm & clarity", path: "/meditation" },
+  { name: "Muscle Relaxation", icon: "💆", description: "Progressive tense & release technique", path: "/muscle-relaxation" },
+  { name: "Grounding", icon: "🌿", description: "Techniques to anchor you in the present", path: "/grounding" },
 ];
 
 const affirmations = [
@@ -193,7 +196,7 @@ const RelaxPage = () => {
             </div>
 
             {/* Activities */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               {mindfulActivities.map((activity, index) => (
                 <div
                   key={activity.name}

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import EmotionCard from "@/components/EmotionCard";
+import DailyTip from "@/components/DailyTip";
 import BottomNav from "@/components/BottomNav";
 import { supabase } from "@/integrations/supabase/client";
 import { useBadges } from "@/hooks/useBadges";
@@ -166,6 +167,11 @@ const HomePage = () => {
               delay={index * 100}
             />
           ))}
+        </div>
+
+        {/* Daily Tip */}
+        <div className="mb-8">
+          <DailyTip />
         </div>
 
         {/* AI Response */}

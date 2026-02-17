@@ -1,6 +1,6 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useLocation } from "react-router-dom";
-import { Send, Trash2, BarChart3 } from "lucide-react";
+import { Send, Trash2, BarChart3, ArrowDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import BottomNav from "@/components/BottomNav";
@@ -40,6 +40,8 @@ const ChatPage = () => {
   const [chatBackground, setChatBackground] = useState(() => localStorage.getItem("emoticam_chat_background") || "none");
   const [customBgImage, setCustomBgImage] = useState(() => localStorage.getItem("emoticam_chat_custom_bg") || "");
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const [showScrollButton, setShowScrollButton] = useState(false);
 
 
   const [conversationHistory, setConversationHistory] = useState<Message[]>([]);
@@ -107,11 +109,20 @@ const ChatPage = () => {
     };
     loadHistory();
   }, [location.state]);
+  const scrollToBottom = useCallback(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, []);
+
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({
-      behavior: "smooth"
-    });
-  }, [messages]);
+    scrollToBottom();
+  }, [messages, scrollToBottom]);
+
+  const handleScroll = useCallback(() => {
+    const container = messagesContainerRef.current;
+    if (!container) return;
+    const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100;
+    setShowScrollButton(!isNearBottom);
+  }, []);
 
   // Listen for chat customization changes from profile
   useEffect(() => {
@@ -464,7 +475,7 @@ const ChatPage = () => {
         </div>}
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 pt-4 pb-6 space-y-4 relative" style={getBackgroundStyle()}>
+      <div ref={messagesContainerRef} onScroll={handleScroll} className="flex-1 overflow-y-auto px-4 pt-4 pb-6 space-y-4 relative" style={getBackgroundStyle()}>
         {chatBackground !== "none" && <div className="absolute inset-0 bg-background/30 pointer-events-none z-0" />}
         <div className="relative z-10 space-y-4">
         {messages.map(message => {
@@ -521,6 +532,16 @@ const ChatPage = () => {
 
           <div ref={messagesEndRef} />
         </div>
+
+        {/* Scroll to latest button */}
+        {showScrollButton && (
+          <button
+            onClick={scrollToBottom}
+            className="absolute bottom-4 right-4 z-20 w-10 h-10 rounded-full bg-primary text-primary-foreground shadow-card flex items-center justify-center hover:bg-primary/90 transition-all animate-fade-in"
+          >
+            <ArrowDown className="w-5 h-5" />
+          </button>
+        )}
       </div>
 
       {/* Input */}

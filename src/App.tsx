@@ -13,6 +13,9 @@ import GratitudeJournalPage from "./pages/GratitudeJournalPage";
 import BodyScanPage from "./pages/BodyScanPage";
 import FiveSensesPage from "./pages/FiveSensesPage";
 import LovingKindnessPage from "./pages/LovingKindnessPage";
+import MeditationPage from "./pages/MeditationPage";
+import MuscleRelaxationPage from "./pages/MuscleRelaxationPage";
+import GroundingPage from "./pages/GroundingPage";
 import ProfilePage from "./pages/ProfilePage";
 import NotFound from "./pages/NotFound";
 import { BadgeCelebration } from "./components/BadgeCelebration";
@@ -62,6 +65,9 @@ const App = () => {
             <Route path="/body-scan" element={<BodyScanPage />} />
             <Route path="/five-senses" element={<FiveSensesPage />} />
             <Route path="/loving-kindness" element={<LovingKindnessPage />} />
+            <Route path="/meditation" element={<MeditationPage />} />
+            <Route path="/muscle-relaxation" element={<MuscleRelaxationPage />} />
+            <Route path="/grounding" element={<GroundingPage />} />
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>

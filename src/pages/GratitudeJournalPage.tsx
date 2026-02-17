@@ -9,11 +9,23 @@ import BottomNav from "@/components/BottomNav";
 import { supabase } from "@/integrations/supabase/client";
 import { useActivityTracker } from "@/hooks/useActivityTracker";
 
+const emotionTags = [
+  { emoji: "😊", label: "Happy" },
+  { emoji: "😔", label: "Sad" },
+  { emoji: "😠", label: "Angry" },
+  { emoji: "😟", label: "Anxious" },
+  { emoji: "😴", label: "Tired" },
+  { emoji: "😌", label: "Calm" },
+  { emoji: "🥰", label: "Grateful" },
+  { emoji: "💪", label: "Strong" },
+];
+
 interface JournalEntry {
   id: string;
   name: string;
   content: string;
   created_at: string;
+  emotionTag?: string;
 }
 
 const GratitudeJournalPage = () => {
@@ -24,6 +36,8 @@ const GratitudeJournalPage = () => {
   const [isWriting, setIsWriting] = useState(false);
   const [journalName, setJournalName] = useState("");
   const [journalContent, setJournalContent] = useState("");
+  const [selectedEmotion, setSelectedEmotion] = useState<string | null>(null);
+  const [filterEmotion, setFilterEmotion] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -107,13 +121,15 @@ const GratitudeJournalPage = () => {
         variant: "destructive",
       });
     } else {
-      setEntries([data, ...entries]);
+      const entryWithTag = { ...data, emotionTag: selectedEmotion || undefined };
+      setEntries([entryWithTag, ...entries]);
       toast({
         title: "Journal saved ✨",
         description: "Your gratitude has been recorded.",
       });
       setJournalName("");
       setJournalContent("");
+      setSelectedEmotion(null);
       setIsWriting(false);
       // Track as calm moment
       incrementCalmMoment();
@@ -194,6 +210,25 @@ const GratitudeJournalPage = () => {
               onChange={(e) => setJournalContent(e.target.value)}
               className="bg-muted/50 border-0 rounded-xl min-h-[150px] resize-none"
             />
+            {/* Emotion tag selector */}
+            <div>
+              <p className="text-xs font-medium text-muted-foreground mb-2">How are you feeling? (optional)</p>
+              <div className="flex flex-wrap gap-2">
+                {emotionTags.map((tag) => (
+                  <button
+                    key={tag.label}
+                    onClick={() => setSelectedEmotion(selectedEmotion === tag.label ? null : tag.label)}
+                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                      selectedEmotion === tag.label
+                        ? "bg-primary text-primary-foreground shadow-soft"
+                        : "bg-muted hover:bg-muted/80"
+                    }`}
+                  >
+                    {tag.emoji} {tag.label}
+                  </button>
+                ))}
+              </div>
+            </div>
             <div className="flex gap-3">
               <Button
                 onClick={() => setIsWriting(false)}
@@ -230,8 +265,34 @@ const GratitudeJournalPage = () => {
         {/* Saved entries */}
         {entries.length > 0 && (
           <div className="space-y-4">
-            <h2 className="font-semibold text-foreground">Your Journals</h2>
-            {entries.map((entry, index) => (
+            <div className="flex items-center justify-between">
+              <h2 className="font-semibold text-foreground">Your Journals</h2>
+            </div>
+            {/* Emotion filter */}
+            <div className="flex gap-1.5 overflow-x-auto pb-1">
+              <button
+                onClick={() => setFilterEmotion(null)}
+                className={`px-3 py-1 rounded-full text-xs font-medium transition-all whitespace-nowrap ${
+                  filterEmotion === null ? "bg-primary text-primary-foreground" : "bg-muted"
+                }`}
+              >
+                All
+              </button>
+              {emotionTags.map((tag) => (
+                <button
+                  key={tag.label}
+                  onClick={() => setFilterEmotion(filterEmotion === tag.label ? null : tag.label)}
+                  className={`px-3 py-1 rounded-full text-xs font-medium transition-all whitespace-nowrap ${
+                    filterEmotion === tag.label ? "bg-primary text-primary-foreground" : "bg-muted"
+                  }`}
+                >
+                  {tag.emoji} {tag.label}
+                </button>
+              ))}
+            </div>
+            {entries
+              .filter((e) => !filterEmotion || e.emotionTag === filterEmotion)
+              .map((entry, index) => (
               <div
                 key={entry.id}
                 className="bg-card rounded-2xl p-4 shadow-soft border border-border animate-fade-in-up"
@@ -239,7 +300,14 @@ const GratitudeJournalPage = () => {
               >
                 <div className="flex items-start justify-between mb-2">
                   <div>
-                    <h3 className="font-semibold text-foreground">{entry.name}</h3>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-semibold text-foreground">{entry.name}</h3>
+                      {entry.emotionTag && (
+                        <span className="px-2 py-0.5 rounded-full bg-primary/10 text-[10px] font-medium text-primary">
+                          {emotionTags.find((t) => t.label === entry.emotionTag)?.emoji} {entry.emotionTag}
+                        </span>
+                      )}
+                    </div>
                     <p className="text-xs text-muted-foreground">{formatDate(entry.created_at)}</p>
                   </div>
                   <button

@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, UserRound } from "lucide-react";
+import { enableGuestMode, isGuestMode } from "@/lib/guestMode";
 
 type AuthMode = "login" | "signup" | "forgot-password";
 
@@ -20,6 +21,12 @@ const AuthPage = () => {
   const isForgotPassword = authMode === "forgot-password";
 
   useEffect(() => {
+    // If guest mode is active, redirect to home
+    if (isGuestMode()) {
+      navigate("/home");
+      return;
+    }
+
     // Check if user is already logged in
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
@@ -328,8 +335,31 @@ const AuthPage = () => {
               </Button>
             </form>
 
+            {/* Guest mode */}
+            <div className="mt-6 animate-fade-in-up stagger-2">
+              <div className="relative flex items-center justify-center mb-4">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-border" />
+                </div>
+                <span className="relative bg-background px-3 text-xs text-muted-foreground">or</span>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="lg"
+                className="w-full rounded-xl"
+                onClick={() => {
+                  enableGuestMode();
+                  navigate("/home");
+                }}
+              >
+                <UserRound className="w-4 h-4 mr-2" />
+                Continue as Guest
+              </Button>
+            </div>
+
             {/* Toggle */}
-            <div className="mt-8 text-center animate-fade-in-up stagger-2">
+            <div className="mt-6 text-center">
               <p className="text-muted-foreground">
                 {isLogin ? "New to EMOTICALM?" : "Already have an account?"}
               </p>

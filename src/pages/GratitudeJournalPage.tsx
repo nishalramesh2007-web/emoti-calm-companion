@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import BottomNav from "@/components/BottomNav";
 import { supabase } from "@/integrations/supabase/client";
 import { useActivityTracker } from "@/hooks/useActivityTracker";
+import { isGuestMode, getGuestJournalEntries, saveGuestJournalEntry, deleteGuestJournalEntry } from "@/lib/guestMode";
 
 const emotionTags = [
   { emoji: "😊", label: "Happy" },
@@ -42,6 +43,12 @@ const GratitudeJournalPage = () => {
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
+    if (isGuestMode()) {
+      setEntries(getGuestJournalEntries());
+      setIsLoading(false);
+      return;
+    }
+
     const loadEntries = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       
@@ -71,7 +78,7 @@ const GratitudeJournalPage = () => {
     loadEntries();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (!session) {
+      if (!session && !isGuestMode()) {
         navigate("/auth");
       }
     });
@@ -90,6 +97,24 @@ const GratitudeJournalPage = () => {
     }
 
     setIsSaving(true);
+    if (isGuestMode()) {
+      const newEntry = {
+        id: crypto.randomUUID(),
+        name: journalName.trim(),
+        content: journalContent.trim(),
+        created_at: new Date().toISOString(),
+        emotionTag: selectedEmotion || undefined,
+      };
+      saveGuestJournalEntry(newEntry);
+      setEntries([newEntry, ...entries]);
+      toast({ title: "Journal saved ✨", description: "Your gratitude has been recorded." });
+      setJournalName("");
+      setJournalContent("");
+      setSelectedEmotion(null);
+      setIsWriting(false);
+      setIsSaving(false);
+      return;
+    }
 
     const { data: { session } } = await supabase.auth.getSession();
     
@@ -139,6 +164,13 @@ const GratitudeJournalPage = () => {
   };
 
   const deleteEntry = async (id: string) => {
+    if (isGuestMode()) {
+      deleteGuestJournalEntry(id);
+      setEntries(entries.filter((entry) => entry.id !== id));
+      toast({ title: "Entry deleted", description: "Journal entry has been removed." });
+      return;
+    }
+
     const { error } = await supabase
       .from("gratitude_entries")
       .delete()

@@ -1,14 +1,20 @@
 import { supabase } from "@/integrations/supabase/client";
 import { useBadges } from "./useBadges";
+import { isGuestMode, getGuestStats, updateGuestStats } from "@/lib/guestMode";
 
 export const useActivityTracker = () => {
   const { checkAndAwardBadges, updateStreak } = useBadges();
 
   const incrementCheckIn = async () => {
+    if (isGuestMode()) {
+      const stats = getGuestStats();
+      updateGuestStats({ checkIns: stats.checkIns + 1 });
+      return;
+    }
+
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    // Get current value and increment
     const { data: profile } = await supabase
       .from("profiles")
       .select("check_ins")
@@ -22,16 +28,20 @@ export const useActivityTracker = () => {
       .update({ check_ins: currentCheckIns + 1 })
       .eq("user_id", user.id);
 
-    // Update streak and check for new badges
     await updateStreak();
     await checkAndAwardBadges();
   };
 
   const incrementCalmMoment = async () => {
+    if (isGuestMode()) {
+      const stats = getGuestStats();
+      updateGuestStats({ calmMoments: stats.calmMoments + 1 });
+      return;
+    }
+
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    // Get current value and increment
     const { data: profile } = await supabase
       .from("profiles")
       .select("calm_moments")
@@ -45,7 +55,6 @@ export const useActivityTracker = () => {
       .update({ calm_moments: currentCalmMoments + 1 })
       .eq("user_id", user.id);
 
-    // Update streak and check for new badges
     await updateStreak();
     await checkAndAwardBadges();
   };

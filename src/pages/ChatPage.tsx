@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import MoodTrends from "@/components/MoodTrends";
 import { useActivityTracker } from "@/hooks/useActivityTracker";
+import { isGuestMode } from "@/lib/guestMode";
 interface Message {
   id: string;
   role: "user" | "assistant";
@@ -49,6 +50,16 @@ const ChatPage = () => {
   // Get user and load conversation history (for AI memory, not display)
   useEffect(() => {
     const loadHistory = async () => {
+      if (isGuestMode()) {
+        setIsLoadingHistory(false);
+        setMessages([{
+          id: "welcome",
+          role: "assistant",
+          content: "Welcome, Guest! I'm here to listen and support you. How are you feeling today? 💜"
+        }]);
+        return;
+      }
+
       const {
         data: {
           user

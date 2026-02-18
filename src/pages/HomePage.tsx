@@ -5,6 +5,7 @@ import DailyTip from "@/components/DailyTip";
 import BottomNav from "@/components/BottomNav";
 import { supabase } from "@/integrations/supabase/client";
 import { useBadges } from "@/hooks/useBadges";
+import { isGuestMode } from "@/lib/guestMode";
 
 const emotionResponses = {
   Happy: [
@@ -74,6 +75,11 @@ const HomePage = () => {
   const [showResponse, setShowResponse] = useState(false);
 
   useEffect(() => {
+    if (isGuestMode()) {
+      setUsername("Guest");
+      return;
+    }
+
     const loadProfile = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       
@@ -92,7 +98,6 @@ const HomePage = () => {
         setUsername(profile.username);
       }
 
-      // Update streak on login/page load - this ensures streak is tracked daily
       await updateStreak();
       await checkAndAwardBadges();
     };
@@ -100,7 +105,7 @@ const HomePage = () => {
     loadProfile();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (!session) {
+      if (!session && !isGuestMode()) {
         navigate("/auth");
       }
     });

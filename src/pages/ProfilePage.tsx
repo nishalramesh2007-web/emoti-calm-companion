@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { useBadges } from "@/hooks/useBadges";
 import { BadgesDisplay } from "@/components/BadgesDisplay";
+import { isGuestMode, disableGuestMode, getGuestStats } from "@/lib/guestMode";
 const fontOptions = [
   { value: "quicksand", label: "Quicksand", fontClass: "font-sans" },
   { value: "playfair", label: "Playfair Display", fontClass: "font-display" },
@@ -109,6 +110,12 @@ const ProfilePage = () => {
   const { allBadges, earnedBadges, loading: badgesLoading, fetchBadges } = useBadges();
 
   useEffect(() => {
+    if (isGuestMode()) {
+      setUsername("Guest");
+      setStats(getGuestStats());
+      return;
+    }
+
     const loadProfile = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       
@@ -133,7 +140,6 @@ const ProfilePage = () => {
           currentStreak: profile.current_streak ?? 0,
         });
         
-        // Refresh badges when profile loads
         fetchBadges();
         
         if (profile.avatar_type && profile.avatar_value) {
@@ -150,7 +156,7 @@ const ProfilePage = () => {
     loadProfile();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (!session) {
+      if (!session && !isGuestMode()) {
         navigate("/auth");
       }
     });
@@ -219,7 +225,11 @@ const ProfilePage = () => {
   };
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    if (isGuestMode()) {
+      disableGuestMode();
+    } else {
+      await supabase.auth.signOut();
+    }
     toast({
       title: "See you soon!",
       description: "Take care of yourself 💜",

@@ -1,8 +1,19 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useLocation } from "react-router-dom";
-import { Send, Trash2, BarChart3, ArrowDown } from "lucide-react";
+import { Send, Trash2, BarChart3, ArrowDown, Check, CheckCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import BottomNav from "@/components/BottomNav";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -10,10 +21,14 @@ import { supabase } from "@/integrations/supabase/client";
 import MoodTrends from "@/components/MoodTrends";
 import { useActivityTracker } from "@/hooks/useActivityTracker";
 import { isGuestMode } from "@/lib/guestMode";
+import { format } from "date-fns";
+
 interface Message {
   id: string;
   role: "user" | "assistant";
   content: string;
+  timestamp?: Date;
+  status?: "sending" | "delivered" | "read";
 }
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
 const MOOD_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-mood`;
@@ -55,7 +70,9 @@ const ChatPage = () => {
         setMessages([{
           id: "welcome",
           role: "assistant",
-          content: "Welcome, Guest! I'm here to listen and support you. How are you feeling today? 💜"
+          content: "Welcome, Guest! I'm here to listen and support you. How are you feeling today? 💜",
+          timestamp: new Date(),
+          status: "read"
         }]);
         return;
       }
@@ -70,7 +87,9 @@ const ChatPage = () => {
         setMessages([{
           id: "welcome",
           role: "assistant",
-          content: "Hello, I'm here to listen and support you. How are you feeling today? Take your time — there's no rush here. 💜"
+          content: "Hello, I'm here to listen and support you. How are you feeling today? Take your time — there's no rush here. 💜",
+          timestamp: new Date(),
+          status: "read"
         }]);
         return;
       }
@@ -113,7 +132,9 @@ const ChatPage = () => {
       const welcomeMsg: Message = {
         id: "welcome",
         role: "assistant",
-        content: randomWelcome
+        content: randomWelcome,
+        timestamp: new Date(),
+        status: "read"
       };
       setMessages([welcomeMsg]);
       setIsLoadingHistory(false);
@@ -246,7 +267,9 @@ const ChatPage = () => {
     const welcomeMsg: Message = {
       id: "welcome-new",
       role: "assistant",
-      content: "I've cleared our previous conversation. How are you feeling right now? I'm here for you. 💜"
+      content: "I've cleared our previous conversation. How are you feeling right now? I'm here for you. 💜",
+      timestamp: new Date(),
+      status: "read"
     };
     setMessages([welcomeMsg]);
     await saveMessage(userId, "assistant", welcomeMsg.content);
@@ -272,7 +295,9 @@ const ChatPage = () => {
     const userMessage: Message = {
       id: Date.now().toString(),
       role: "user",
-      content: input.trim()
+      content: input.trim(),
+      timestamp: new Date(),
+      status: "sending"
     };
     const updatedMessages = [...messages, userMessage];
     setMessages(updatedMessages);
@@ -282,6 +307,8 @@ const ChatPage = () => {
     // Save user message to database
     if (userId) {
       await saveMessage(userId, "user", userMessage.content);
+      // Mark as delivered after save
+      setMessages(prev => prev.map(m => m.id === userMessage.id ? { ...m, status: "delivered" as const } : m));
       
       // Increment check-in for every message sent
       incrementCheckIn();
@@ -364,23 +391,25 @@ const ChatPage = () => {
           try {
             const parsed = JSON.parse(jsonStr);
             const content = parsed.choices?.[0]?.delta?.content as string | undefined;
-            if (content) {
-              assistantContent += content;
-              setMessages(prev => {
-                const last = prev[prev.length - 1];
-                if (last?.role === "assistant" && last.id === assistantId) {
-                  return prev.map((m, i) => i === prev.length - 1 ? {
-                    ...m,
-                    content: assistantContent
-                  } : m);
-                }
-                return [...prev, {
-                  id: assistantId,
-                  role: "assistant",
-                  content: assistantContent
-                }];
-              });
-            }
+              if (content) {
+                assistantContent += content;
+                setMessages(prev => {
+                  const last = prev[prev.length - 1];
+                  if (last?.role === "assistant" && last.id === assistantId) {
+                    return prev.map((m, i) => i === prev.length - 1 ? {
+                      ...m,
+                      content: assistantContent
+                    } : m);
+                  }
+                  return [...prev, {
+                    id: assistantId,
+                    role: "assistant",
+                    content: assistantContent,
+                    timestamp: new Date(),
+                    status: "read"
+                  }];
+                });
+              }
           } catch {
             textBuffer = line + "\n" + textBuffer;
             break;
@@ -419,7 +448,9 @@ const ChatPage = () => {
             return [...prev, {
               id: assistantId,
               role: "assistant",
-              content: assistantContent
+              content: assistantContent,
+              timestamp: new Date(),
+              status: "read"
             }];
           });
         }
@@ -428,6 +459,8 @@ const ChatPage = () => {
       // Save assistant message to database
       if (userId && assistantContent) {
         await saveMessage(userId, "assistant", assistantContent);
+        // Mark user's last message as "read" since assistant responded
+        setMessages(prev => prev.map(m => m.role === "user" && m.status === "delivered" ? { ...m, status: "read" as const } : m));
       }
     } catch (error) {
       console.error("Chat error:", error);
@@ -473,9 +506,29 @@ const ChatPage = () => {
             {userId && <Button variant={showMoodTrends ? "default" : "ghost"} size="icon" onClick={() => setShowMoodTrends(!showMoodTrends)} className={cn(showMoodTrends ? "" : "text-muted-foreground hover:text-primary")} title="Mood trends">
                 <BarChart3 className="w-5 h-5" />
               </Button>}
-            {userId && messages.length > 1 && <Button variant="ghost" size="icon" onClick={clearHistory} className="text-muted-foreground hover:text-destructive" title="Clear conversation">
-                <Trash2 className="w-5 h-5" />
-              </Button>}
+            {userId && messages.length > 1 && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-destructive" title="Clear conversation">
+                    <Trash2 className="w-5 h-5" />
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Clear conversation?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will permanently delete your entire chat history with LYLA. This action cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={clearHistory} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                      Clear all
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
           </div>
         </div>
       </div>
@@ -486,7 +539,7 @@ const ChatPage = () => {
         </div>}
 
       {/* Messages */}
-      <div ref={messagesContainerRef} onScroll={handleScroll} className="flex-1 overflow-y-auto px-4 pt-4 pb-6 space-y-4 relative" style={getBackgroundStyle()}>
+      <div ref={messagesContainerRef} onScroll={handleScroll} className="flex-1 overflow-y-auto px-4 pt-4 pb-6 space-y-4 relative bg-gradient-to-b from-background via-muted/20 to-background" style={chatBackground !== "none" ? getBackgroundStyle() : undefined}>
         {chatBackground !== "none" && <div className="absolute inset-0 bg-background/30 pointer-events-none z-0" />}
         <div className="relative z-10 space-y-4">
         {messages.map(message => {
@@ -521,22 +574,39 @@ const ChatPage = () => {
             borderColor: `${color}40`
           };
         };
-        return <div key={message.id} className={cn("flex animate-fade-in-up relative z-10", message.role === "user" ? "justify-end" : "justify-start")}>
+        return <div key={message.id} className={cn("flex flex-col animate-fade-in-up relative z-10", message.role === "user" ? "items-end" : "items-start")}>
               <div 
                 className={cn("max-w-[85%] rounded-2xl px-4 py-3", message.role === "user" ? "text-white rounded-br-md" : "border shadow-soft rounded-bl-md")}
                 style={message.role === "user" ? getUserBubbleStyle() : getAiBubbleStyle()}
               >
                 <p className={cn("text-sm leading-relaxed", fontClass)}>{message.content}</p>
               </div>
+              <div className={cn("flex items-center gap-1 mt-1 px-1", message.role === "user" ? "flex-row-reverse" : "")}>
+                {message.timestamp && (
+                  <span className="text-[10px] text-muted-foreground/60">
+                    {format(message.timestamp, "h:mm a")}
+                  </span>
+                )}
+                {message.role === "user" && message.status && (
+                  <span className="text-muted-foreground/60">
+                    {message.status === "sending" && <Check className="w-3 h-3" />}
+                    {message.status === "delivered" && <Check className="w-3 h-3" />}
+                    {message.status === "read" && <CheckCheck className="w-3 h-3 text-primary" />}
+                  </span>
+                )}
+              </div>
             </div>;
       })}
 
         {isLoading && messages[messages.length - 1]?.role !== "assistant" && <div className="flex justify-start animate-fade-in relative z-10">
             <div className="bg-card border border-border shadow-soft rounded-2xl rounded-bl-md px-4 py-3">
-              <div className="flex gap-1.5">
-                <div className="w-2 h-2 rounded-full bg-primary/60 animate-pulse-soft" />
-                <div className="w-2 h-2 rounded-full bg-primary/60 animate-pulse-soft stagger-1" />
-                <div className="w-2 h-2 rounded-full bg-primary/60 animate-pulse-soft stagger-2" />
+              <div className="flex items-center gap-2">
+                <div className="flex gap-1.5">
+                  <div className="w-2 h-2 rounded-full bg-primary/60 animate-pulse-soft" />
+                  <div className="w-2 h-2 rounded-full bg-primary/60 animate-pulse-soft stagger-1" />
+                  <div className="w-2 h-2 rounded-full bg-primary/60 animate-pulse-soft stagger-2" />
+                </div>
+                <span className="text-xs text-muted-foreground ml-1">typing...</span>
               </div>
             </div>
           </div>}

@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Wind, Activity, Sparkles } from "lucide-react";
+import { Wind, Activity, Sparkles, Star, StarOff } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import BreathingExercise from "@/components/BreathingExercise";
 import YogaExercise from "@/components/YogaExercise";
@@ -8,17 +8,17 @@ import BottomNav from "@/components/BottomNav";
 import { cn } from "@/lib/utils";
 
 const breathingPatterns = [
-  { name: "Box Breathing", inhale: 4, hold: 4, exhale: 4, holdAfter: 4 },
-  { name: "4-7-8 Relaxing", inhale: 4, hold: 7, exhale: 8 },
-  { name: "Calm Breath", inhale: 4, hold: 2, exhale: 6 },
+  { name: "Box Breathing", inhale: 4, hold: 4, exhale: 4, holdAfter: 4, isNew: false },
+  { name: "4-7-8 Relaxing", inhale: 4, hold: 7, exhale: 8, isNew: false },
+  { name: "Calm Breath", inhale: 4, hold: 2, exhale: 6, isNew: false },
+  { name: "Alternate Nostril", inhale: 4, hold: 4, exhale: 4, isNew: true },
+  { name: "Lion's Breath", inhale: 4, hold: 2, exhale: 3, isNew: true },
 ];
 
 const yogaPoses = [
   { 
-    name: "Child's Pose", 
-    duration: "1-3 min", 
-    emoji: "🧒", 
-    description: "Gentle stretch for back and hips",
+    name: "Child's Pose", duration: "1-3 min", emoji: "🧒", 
+    description: "Gentle stretch for back and hips", isNew: false,
     instructions: [
       "Kneel on the floor with toes together and knees hip-width apart",
       "Exhale and lower your torso between your thighs",
@@ -29,10 +29,8 @@ const yogaPoses = [
     benefits: "Relieves back pain, calms the mind, and gently stretches hips and thighs"
   },
   { 
-    name: "Cat-Cow Stretch", 
-    duration: "1-2 min", 
-    emoji: "🐱", 
-    description: "Spinal flexibility and stress relief",
+    name: "Cat-Cow Stretch", duration: "1-2 min", emoji: "🐱", 
+    description: "Spinal flexibility and stress relief", isNew: false,
     instructions: [
       "Start on all fours with wrists under shoulders and knees under hips",
       "Inhale: Drop your belly, lift your chest and tailbone (Cow)",
@@ -43,10 +41,8 @@ const yogaPoses = [
     benefits: "Improves spinal flexibility, relieves stress, and massages internal organs"
   },
   { 
-    name: "Legs Up Wall", 
-    duration: "5-10 min", 
-    emoji: "🦵", 
-    description: "Deep relaxation and circulation",
+    name: "Legs Up Wall", duration: "5-10 min", emoji: "🦵", 
+    description: "Deep relaxation and circulation", isNew: false,
     instructions: [
       "Sit sideways against a wall, then swing your legs up as you lie back",
       "Scoot your hips as close to the wall as comfortable",
@@ -57,10 +53,8 @@ const yogaPoses = [
     benefits: "Reduces anxiety, relieves tired legs, improves circulation, and calms the nervous system"
   },
   { 
-    name: "Seated Forward Fold", 
-    duration: "1-3 min", 
-    emoji: "🙇", 
-    description: "Calms the mind, stretches spine",
+    name: "Seated Forward Fold", duration: "1-3 min", emoji: "🙇", 
+    description: "Calms the mind, stretches spine", isNew: false,
     instructions: [
       "Sit with legs extended straight in front of you",
       "Inhale and lengthen your spine, reaching arms overhead",
@@ -70,15 +64,77 @@ const yogaPoses = [
     ],
     benefits: "Stretches the entire back body, calms the mind, and reduces stress and anxiety"
   },
+  { 
+    name: "Downward Dog", duration: "1-3 min", emoji: "🐕", 
+    description: "Full body stretch and energizer", isNew: true,
+    instructions: [
+      "Start on all fours, tuck your toes under",
+      "Lift your hips up and back, forming an inverted V shape",
+      "Press your hands firmly into the mat, fingers spread wide",
+      "Pedal your feet gently to warm up your hamstrings",
+      "Hold for 5-10 breaths, lengthening your spine"
+    ],
+    benefits: "Strengthens arms and legs, stretches hamstrings, calves, and spine"
+  },
+  { 
+    name: "Mountain Pose", duration: "1-2 min", emoji: "⛰️", 
+    description: "Foundation pose for alignment", isNew: true,
+    instructions: [
+      "Stand tall with feet together or hip-width apart",
+      "Distribute your weight evenly across both feet",
+      "Engage your thighs slightly, draw your tailbone down",
+      "Roll your shoulders back and down, arms at sides",
+      "Breathe deeply and feel grounded through your feet"
+    ],
+    benefits: "Improves posture, strengthens thighs and ankles, increases body awareness"
+  },
+  { 
+    name: "Warrior I", duration: "1-2 min", emoji: "⚔️", 
+    description: "Builds strength and confidence", isNew: true,
+    instructions: [
+      "Step one foot back about 3-4 feet, angling the back foot at 45°",
+      "Bend your front knee to 90°, keeping it over the ankle",
+      "Raise both arms overhead with palms facing each other",
+      "Square your hips toward the front of your mat",
+      "Hold for 5-8 breaths, then switch sides"
+    ],
+    benefits: "Strengthens legs, opens hips and chest, builds focus and stamina"
+  },
+  { 
+    name: "Tree Pose", duration: "1-2 min", emoji: "🌲", 
+    description: "Balance and mental focus", isNew: true,
+    instructions: [
+      "Stand on one leg, shift your weight to that foot",
+      "Place the opposite foot on your inner thigh or calf (avoid the knee)",
+      "Bring hands to prayer position at your heart",
+      "Find a fixed point to focus your gaze on",
+      "Hold for 5-10 breaths, then switch sides"
+    ],
+    benefits: "Improves balance, strengthens ankles and legs, enhances concentration"
+  },
+  { 
+    name: "Corpse Pose", duration: "5-10 min", emoji: "🧘", 
+    description: "Total relaxation and surrender", isNew: true,
+    instructions: [
+      "Lie flat on your back with legs slightly apart",
+      "Let your feet fall open naturally to the sides",
+      "Place arms alongside your body, palms facing up",
+      "Close your eyes and release all muscle tension",
+      "Stay for 5-10 minutes, breathing naturally and letting go completely"
+    ],
+    benefits: "Reduces blood pressure, deeply calms the nervous system, integrates practice benefits"
+  },
 ];
 
 const mindfulActivities = [
-  { name: "Body Scan", icon: "🧘", description: "Notice sensations from head to toe", path: "/body-scan" },
-  { name: "5 Senses Check", icon: "👁️", description: "Name 5 things you can see, 4 you can touch...", path: "/five-senses" },
-  { name: "Loving Kindness", icon: "💝", description: "Send kind wishes to yourself and others", path: "/loving-kindness" },
-  { name: "Meditation", icon: "🧘‍♂️", description: "Guided meditation for calm & clarity", path: "/meditation" },
-  { name: "Muscle Relaxation", icon: "💆", description: "Progressive tense & release technique", path: "/muscle-relaxation" },
-  { name: "Grounding", icon: "🌿", description: "Techniques to anchor you in the present", path: "/grounding" },
+  { name: "Body Scan", icon: "🧘", description: "Notice sensations from head to toe", path: "/body-scan", isNew: false },
+  { name: "5 Senses Check", icon: "👁️", description: "Name 5 things you can see, 4 you can touch...", path: "/five-senses", isNew: false },
+  { name: "Loving Kindness", icon: "💝", description: "Send kind wishes to yourself and others", path: "/loving-kindness", isNew: false },
+  { name: "Meditation", icon: "🧘‍♂️", description: "Guided meditation for calm & clarity", path: "/meditation", isNew: false },
+  { name: "Muscle Relaxation", icon: "💆", description: "Progressive tense & release technique", path: "/muscle-relaxation", isNew: false },
+  { name: "Grounding", icon: "🌿", description: "Techniques to anchor you in the present", path: "/grounding", isNew: false },
+  { name: "Deep Relaxation", icon: "🌊", description: "Progressive full-body relaxation journey", path: "/muscle-relaxation", isNew: true },
+  { name: "Compassion Meditation", icon: "💛", description: "Extended loving kindness for deeper empathy", path: "/loving-kindness", isNew: true },
 ];
 
 const affirmations = [
@@ -90,11 +146,25 @@ const affirmations = [
   "I am doing my best, and that is enough",
 ];
 
+const getFavorites = (): string[] => {
+  try {
+    return JSON.parse(localStorage.getItem("emoticam_favorites") || "[]");
+  } catch { return []; }
+};
+
+const toggleFavorite = (name: string): string[] => {
+  const favs = getFavorites();
+  const updated = favs.includes(name) ? favs.filter(f => f !== name) : [...favs, name];
+  localStorage.setItem("emoticam_favorites", JSON.stringify(updated));
+  return updated;
+};
+
 const RelaxPage = () => {
   const navigate = useNavigate();
   const [selectedPattern, setSelectedPattern] = useState(0);
   const [selectedPose, setSelectedPose] = useState(0);
   const [currentAffirmation, setCurrentAffirmation] = useState(0);
+  const [favorites, setFavorites] = useState<string[]>(getFavorites);
 
   const handleActivityClick = (path: string) => {
     navigate(path);
@@ -103,6 +173,21 @@ const RelaxPage = () => {
   const nextAffirmation = () => {
     setCurrentAffirmation((prev) => (prev + 1) % affirmations.length);
   };
+
+  const handleToggleFavorite = (name: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setFavorites(toggleFavorite(name));
+  };
+
+  const isFav = (name: string) => favorites.includes(name);
+
+  // Gather all favorites for quick access section
+  const allItems = [
+    ...breathingPatterns.map(b => ({ name: b.name, type: "breathing" as const })),
+    ...yogaPoses.map(y => ({ name: y.name, type: "yoga" as const })),
+    ...mindfulActivities.map(m => ({ name: m.name, type: "mind" as const, path: m.path })),
+  ];
+  const favoriteItems = allItems.filter(i => favorites.includes(i.name));
 
   return (
     <div className="min-h-screen bg-background pb-24">
@@ -113,6 +198,29 @@ const RelaxPage = () => {
       </div>
 
       <div className="px-4 py-6">
+        {/* Favorites quick access */}
+        {favoriteItems.length > 0 && (
+          <div className="mb-6 animate-fade-in">
+            <h2 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-1.5">
+              <Star className="w-4 h-4 text-primary fill-primary" /> Favorites
+            </h2>
+            <div className="flex gap-2 overflow-x-auto pb-2">
+              {favoriteItems.map(item => (
+                <button
+                  key={item.name}
+                  onClick={() => {
+                    if (item.type === "mind" && item.path) navigate(item.path);
+                    // For breathing/yoga, user can find them in their tabs
+                  }}
+                  className="px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 transition-all"
+                >
+                  ⭐ {item.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         <Tabs defaultValue="breathing" className="w-full">
           <TabsList className="w-full bg-muted/50 p-1 rounded-2xl mb-6">
             <TabsTrigger value="breathing" className="flex-1 rounded-xl gap-2 data-[state=active]:bg-card data-[state=active]:shadow-soft">
@@ -138,15 +246,35 @@ const RelaxPage = () => {
                   key={pattern.name}
                   onClick={() => setSelectedPattern(index)}
                   className={cn(
-                    "px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-all",
+                    "relative px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-all flex items-center gap-1.5",
                     selectedPattern === index
                       ? "bg-primary text-primary-foreground shadow-soft"
                       : "bg-card border border-border hover:border-primary/30"
                   )}
                 >
                   {pattern.name}
+                  {pattern.isNew && (
+                    <span className="text-[10px] font-bold bg-destructive text-destructive-foreground px-1.5 py-0.5 rounded-full leading-none">
+                      NEW
+                    </span>
+                  )}
                 </button>
               ))}
+            </div>
+
+            {/* Favorite toggle */}
+            <div className="flex justify-end">
+              <button
+                onClick={(e) => handleToggleFavorite(breathingPatterns[selectedPattern].name, e)}
+                className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors"
+              >
+                {isFav(breathingPatterns[selectedPattern].name) ? (
+                  <Star className="w-4 h-4 text-primary fill-primary" />
+                ) : (
+                  <StarOff className="w-4 h-4" />
+                )}
+                {isFav(breathingPatterns[selectedPattern].name) ? "Favorited" : "Add to favorites"}
+              </button>
             </div>
 
             {/* Breathing exercise */}
@@ -164,15 +292,35 @@ const RelaxPage = () => {
                   key={pose.name}
                   onClick={() => setSelectedPose(index)}
                   className={cn(
-                    "px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-all",
+                    "relative px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-all flex items-center gap-1.5",
                     selectedPose === index
                       ? "bg-primary text-primary-foreground shadow-soft"
                       : "bg-card border border-border hover:border-primary/30"
                   )}
                 >
                   {pose.emoji} {pose.name}
+                  {pose.isNew && (
+                    <span className="text-[10px] font-bold bg-destructive text-destructive-foreground px-1.5 py-0.5 rounded-full leading-none">
+                      NEW
+                    </span>
+                  )}
                 </button>
               ))}
+            </div>
+
+            {/* Favorite toggle */}
+            <div className="flex justify-end">
+              <button
+                onClick={(e) => handleToggleFavorite(yogaPoses[selectedPose].name, e)}
+                className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors"
+              >
+                {isFav(yogaPoses[selectedPose].name) ? (
+                  <Star className="w-4 h-4 text-primary fill-primary" />
+                ) : (
+                  <StarOff className="w-4 h-4" />
+                )}
+                {isFav(yogaPoses[selectedPose].name) ? "Favorited" : "Add to favorites"}
+              </button>
             </div>
 
             {/* Interactive yoga exercise */}
@@ -201,10 +349,27 @@ const RelaxPage = () => {
                 <div
                   key={activity.name}
                   onClick={() => handleActivityClick(activity.path)}
-                  className="bg-card rounded-2xl p-4 shadow-soft border border-border hover:shadow-card transition-all cursor-pointer animate-fade-in-up"
+                  className="relative bg-card rounded-2xl p-4 shadow-soft border border-border hover:shadow-card transition-all cursor-pointer animate-fade-in-up"
                   style={{ animationDelay: `${index * 100}ms` }}
                 >
-                  <span className="text-2xl mb-2 block">{activity.icon}</span>
+                  {activity.isNew && (
+                    <span className="absolute top-2 right-2 text-[10px] font-bold bg-destructive text-destructive-foreground px-1.5 py-0.5 rounded-full leading-none">
+                      NEW
+                    </span>
+                  )}
+                  <div className="flex justify-between items-start mb-2">
+                    <span className="text-2xl">{activity.icon}</span>
+                    <button
+                      onClick={(e) => handleToggleFavorite(activity.name, e)}
+                      className="p-1 -m-1"
+                    >
+                      {isFav(activity.name) ? (
+                        <Star className="w-3.5 h-3.5 text-primary fill-primary" />
+                      ) : (
+                        <StarOff className="w-3.5 h-3.5 text-muted-foreground/40 hover:text-primary transition-colors" />
+                      )}
+                    </button>
+                  </div>
                   <h3 className="font-semibold text-foreground text-sm mb-1">{activity.name}</h3>
                   <p className="text-xs text-muted-foreground">{activity.description}</p>
                 </div>

@@ -53,8 +53,11 @@ const ChatPage = () => {
   const [chatFont, setChatFont] = useState(() => localStorage.getItem("emoticam_chat_font") || "quicksand");
   const [chatColor, setChatColor] = useState(() => localStorage.getItem("emoticam_chat_color") || "lavender");
   const [chatPersonality, setChatPersonality] = useState(() => localStorage.getItem("emoticam_chat_personality") || "gentle");
+  const [chatResponseLength, setChatResponseLength] = useState(() => localStorage.getItem("emoticam_chat_response_length") || "medium");
+  const [chatTopicExpertise, setChatTopicExpertise] = useState(() => localStorage.getItem("emoticam_chat_topic_expertise") || "general");
   const [chatBackground, setChatBackground] = useState(() => localStorage.getItem("emoticam_chat_background") || "none");
   const [customBgImage, setCustomBgImage] = useState(() => localStorage.getItem("emoticam_chat_custom_bg") || "");
+  const [moodPatternsSummary, setMoodPatternsSummary] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const [showScrollButton, setShowScrollButton] = useState(false);
@@ -162,12 +165,54 @@ const ChatPage = () => {
       setChatFont(localStorage.getItem("emoticam_chat_font") || "quicksand");
       setChatColor(localStorage.getItem("emoticam_chat_color") || "lavender");
       setChatPersonality(localStorage.getItem("emoticam_chat_personality") || "gentle");
+      setChatResponseLength(localStorage.getItem("emoticam_chat_response_length") || "medium");
+      setChatTopicExpertise(localStorage.getItem("emoticam_chat_topic_expertise") || "general");
       setChatBackground(localStorage.getItem("emoticam_chat_background") || "none");
       setCustomBgImage(localStorage.getItem("emoticam_chat_custom_bg") || "");
     };
     window.addEventListener("storage", handleStorageChange);
     return () => window.removeEventListener("storage", handleStorageChange);
   }, []);
+
+  // Load mood patterns for AI context
+  useEffect(() => {
+    if (!userId) return;
+    const loadMoodPatterns = async () => {
+      const { data: moods } = await supabase
+        .from("mood_entries")
+        .select("mood_score, mood_label, created_at")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false })
+        .limit(30);
+      
+      if (moods && moods.length >= 3) {
+        const dayMap: Record<string, number[]> = {};
+        moods.forEach(m => {
+          const day = new Date(m.created_at).toLocaleDateString("en-US", { weekday: "long" });
+          if (!dayMap[day]) dayMap[day] = [];
+          dayMap[day].push(m.mood_score);
+        });
+        
+        const patterns: string[] = [];
+        Object.entries(dayMap).forEach(([day, scores]) => {
+          if (scores.length >= 2) {
+            const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
+            if (avg <= 3) patterns.push(`User tends to feel low on ${day}s (avg mood: ${avg.toFixed(1)}/10)`);
+            else if (avg >= 7) patterns.push(`User tends to feel good on ${day}s (avg mood: ${avg.toFixed(1)}/10)`);
+          }
+        });
+
+        const recentLabels = moods.slice(0, 5).map(m => m.mood_label);
+        const labelCounts: Record<string, number> = {};
+        recentLabels.forEach(l => { labelCounts[l] = (labelCounts[l] || 0) + 1; });
+        const topMood = Object.entries(labelCounts).sort((a, b) => b[1] - a[1])[0];
+        if (topMood) patterns.push(`Recent dominant mood: ${topMood[0]}`);
+
+        setMoodPatternsSummary(patterns.join(". "));
+      }
+    };
+    loadMoodPatterns();
+  }, [userId]);
 
   const getBackgroundStyle = (): React.CSSProperties => {
     const bgOptions: Record<string, { type: string; gradient?: string; url?: string }> = {
@@ -333,13 +378,16 @@ const ChatPage = () => {
           "Content-Type": "application/json",
           Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`
         },
-        body: JSON.stringify({
-          messages: allMessages.map(m => ({
-            role: m.role,
-            content: m.content
-          })),
-          personality: chatPersonality
-        })
+          body: JSON.stringify({
+            messages: allMessages.map(m => ({
+              role: m.role,
+              content: m.content
+            })),
+            personality: chatPersonality,
+            responseLength: chatResponseLength,
+            topicExpertise: chatTopicExpertise,
+            moodPatterns: moodPatternsSummary
+          })
       });
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));

@@ -41,6 +41,22 @@ const personalityOptions = [
   { value: "wise", label: "Wise Mentor", emoji: "🦉", description: "Thoughtful guidance" },
   { value: "playful", label: "Playful Friend", emoji: "🌈", description: "Light and fun" },
   { value: "nurturing", label: "Nurturing", emoji: "🌿", description: "Warm and caring" },
+  { value: "motivational", label: "Motivational", emoji: "🔥", description: "Push you forward" },
+  { value: "direct", label: "Direct & Practical", emoji: "🎯", description: "Straight to the point" },
+  { value: "humorous", label: "Humorous", emoji: "😄", description: "Lighten the mood" },
+];
+
+const responseLengthOptions = [
+  { value: "brief", label: "Brief", emoji: "⚡", description: "Short & sweet (1-2 sentences)" },
+  { value: "medium", label: "Medium", emoji: "📝", description: "Balanced (2-4 sentences)" },
+  { value: "detailed", label: "Detailed", emoji: "📖", description: "In-depth (4+ sentences)" },
+];
+
+const topicExpertiseOptions = [
+  { value: "general", label: "General Wellness", emoji: "🌿", description: "Broad support" },
+  { value: "anxiety", label: "Anxiety Focus", emoji: "🧘", description: "Calming techniques" },
+  { value: "sleep", label: "Sleep Focus", emoji: "🌙", description: "Better rest habits" },
+  { value: "work-stress", label: "Work Stress", emoji: "💼", description: "Professional balance" },
 ];
 
 const backgroundOptions = [
@@ -99,6 +115,8 @@ const ProfilePage = () => {
   const [chatFont, setChatFont] = useState(() => localStorage.getItem("emoticam_chat_font") || "quicksand");
   const [chatColor, setChatColor] = useState(() => localStorage.getItem("emoticam_chat_color") || "lavender");
   const [chatPersonality, setChatPersonality] = useState(() => localStorage.getItem("emoticam_chat_personality") || "gentle");
+  const [chatResponseLength, setChatResponseLength] = useState(() => localStorage.getItem("emoticam_chat_response_length") || "medium");
+  const [chatTopicExpertise, setChatTopicExpertise] = useState(() => localStorage.getItem("emoticam_chat_topic_expertise") || "general");
   const [chatBackground, setChatBackground] = useState(() => localStorage.getItem("emoticam_chat_background") || "none");
   const [customBgImage, setCustomBgImage] = useState(() => localStorage.getItem("emoticam_chat_custom_bg") || "");
   const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
@@ -587,6 +605,70 @@ const ProfilePage = () => {
                     <div className="flex items-center gap-2">
                       <span>{personality.emoji}</span>
                       <span>{personality.label}</span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Response Length */}
+          <div className="flex items-center justify-between p-4 border-b border-border">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-calm-peach-light flex items-center justify-center">
+                <Type className="w-5 h-5 text-calm-peach" />
+              </div>
+              <div>
+                <p className="font-medium text-foreground">Response Length</p>
+                <p className="text-sm text-muted-foreground">How detailed LYLA responds</p>
+              </div>
+            </div>
+            <Select value={chatResponseLength} onValueChange={(value) => {
+              setChatResponseLength(value);
+              localStorage.setItem("emoticam_chat_response_length", value);
+              toast({ title: "Response length updated!", description: "LYLA will adjust her responses" });
+            }}>
+              <SelectTrigger className="w-[140px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {responseLengthOptions.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>
+                    <div className="flex items-center gap-2">
+                      <span>{opt.emoji}</span>
+                      <span>{opt.label}</span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Topic Expertise */}
+          <div className="flex items-center justify-between p-4 border-b border-border">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-calm-mint-light flex items-center justify-center">
+                <Heart className="w-5 h-5 text-calm-mint" />
+              </div>
+              <div>
+                <p className="font-medium text-foreground">Topic Focus</p>
+                <p className="text-sm text-muted-foreground">LYLA's area of expertise</p>
+              </div>
+            </div>
+            <Select value={chatTopicExpertise} onValueChange={(value) => {
+              setChatTopicExpertise(value);
+              localStorage.setItem("emoticam_chat_topic_expertise", value);
+              toast({ title: "Topic focus updated!", description: "LYLA will tailor her advice" });
+            }}>
+              <SelectTrigger className="w-[140px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {topicExpertiseOptions.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>
+                    <div className="flex items-center gap-2">
+                      <span>{opt.emoji}</span>
+                      <span>{opt.label}</span>
                     </div>
                   </SelectItem>
                 ))}

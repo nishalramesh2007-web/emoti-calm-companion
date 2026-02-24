@@ -66,6 +66,46 @@ Personality: Nurturing & Caring
 - Use tender, caring language
 - Focus on emotional validation and support
 - May use nurturing emojis like 🌿 🤗 💕`,
+
+  motivational: `
+Personality: Motivational Coach
+- Energizing and empowering in your responses
+- Push the user to take action and grow
+- Use strong, confident language
+- Celebrate effort and progress
+- Challenge limiting beliefs constructively
+- May use motivating emojis like 🔥 💪 🚀`,
+
+  direct: `
+Personality: Direct & Practical
+- Straightforward and action-oriented
+- Give clear, concise advice
+- Focus on practical solutions and steps
+- Avoid excessive emotional language
+- Be honest and transparent
+- May use practical emojis like 🎯 ✅ 📋`,
+
+  humorous: `
+Personality: Humorous & Witty
+- Use humor and wit to lighten heavy topics
+- Make the user laugh or smile when appropriate
+- Be playful with wordplay and observations
+- Still be empathetic underneath the humor
+- Know when to be serious vs funny
+- May use fun emojis like 😄 🤣 🎉`,
+};
+
+const responseLengthPrompts: Record<string, string> = {
+  brief: `Response Length: Keep responses very brief — 1-2 sentences max. Be concise and impactful.`,
+  medium: `Response Length: Keep responses moderate — 2-4 sentences. Balance depth with brevity.`,
+  detailed: `Response Length: Give detailed, thorough responses — 4+ sentences. Explore the topic in depth with examples and explanations.`,
+};
+
+const topicExpertisePrompts: Record<string, string> = {
+  general: `Topic Focus: General wellness and emotional support. Cover all aspects of mental health and wellbeing.`,
+  anxiety: `Topic Focus: Anxiety specialist. Prioritize calming techniques, grounding exercises, cognitive reframing, and anxiety management strategies. When relevant, suggest breathing exercises and mindfulness practices.`,
+  sleep: `Topic Focus: Sleep wellness specialist. Prioritize sleep hygiene tips, bedtime routines, relaxation techniques for better sleep, and addressing sleep-related concerns. Suggest calming activities when appropriate.`,
+  "work-stress": `Topic Focus: Work stress specialist. Prioritize work-life balance strategies, boundary setting, productivity tips, dealing with difficult colleagues, burnout prevention, and professional growth mindset.`,
 };
 
 serve(async (req) => {
@@ -74,7 +114,7 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, personality = "gentle" } = await req.json();
+    const { messages, personality = "gentle", responseLength = "medium", topicExpertise = "general", moodPatterns = "" } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
     if (!LOVABLE_API_KEY) {
@@ -83,7 +123,10 @@ serve(async (req) => {
     }
 
     const personalityModifier = personalityPrompts[personality] || personalityPrompts.gentle;
-    const systemPrompt = `${basePrompt}\n${personalityModifier}`;
+    const lengthModifier = responseLengthPrompts[responseLength] || responseLengthPrompts.medium;
+    const topicModifier = topicExpertisePrompts[topicExpertise] || topicExpertisePrompts.general;
+    const moodContext = moodPatterns ? `\nUser's mood patterns from past data:\n${moodPatterns}\nReference these patterns naturally when relevant (e.g., "I noticed you tend to feel down on certain days..."). Don't force it — only mention when it genuinely adds value.` : "";
+    const systemPrompt = `${basePrompt}\n${personalityModifier}\n${lengthModifier}\n${topicModifier}${moodContext}`;
 
     console.log("Sending request to Lovable AI with", messages.length, "messages, personality:", personality);
 

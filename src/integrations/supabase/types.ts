@@ -207,7 +207,11 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      increment_calm_moments: {
+        Args: { p_user_id: string }
+        Returns: undefined
+      }
+      increment_check_ins: { Args: { p_user_id: string }; Returns: undefined }
     }
     Enums: {
       [_ in never]: never

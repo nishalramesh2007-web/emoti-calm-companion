@@ -15,18 +15,7 @@ export const useActivityTracker = () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("check_ins")
-      .eq("user_id", user.id)
-      .single();
-
-    const currentCheckIns = profile?.check_ins ?? 0;
-
-    await supabase
-      .from("profiles")
-      .update({ check_ins: currentCheckIns + 1 })
-      .eq("user_id", user.id);
+    await supabase.rpc("increment_check_ins", { p_user_id: user.id });
 
     await updateStreak();
     await checkAndAwardBadges();
@@ -42,18 +31,7 @@ export const useActivityTracker = () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("calm_moments")
-      .eq("user_id", user.id)
-      .single();
-
-    const currentCalmMoments = profile?.calm_moments ?? 0;
-
-    await supabase
-      .from("profiles")
-      .update({ calm_moments: currentCalmMoments + 1 })
-      .eq("user_id", user.id);
+    await supabase.rpc("increment_calm_moments", { p_user_id: user.id });
 
     await updateStreak();
     await checkAndAwardBadges();
